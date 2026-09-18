@@ -1,0 +1,29 @@
+# Live executor sandbox: current supervisor reads (regenerated 2026-09-18T07:09:14Z)
+
+## bin/fm-crew-state.sh on each live executor task
+$ bin/fm-crew-state.sh exec-bounce
+state: failed · source: executor · committed but no PR
+$ bin/fm-crew-state.sh exec-esc
+state: failed · source: executor · no commits and no PR (verify likely failed before commit)
+$ bin/fm-crew-state.sh exec-retry
+state: done · source: executor · PR https://github.com/acme/project/pull/10 ready
+$ bin/fm-crew-state.sh exec-held
+state: unknown · source: none · no metadata for exec-held
+$ bin/fm-crew-state.sh exec-long
+state: working · source: executor · running 3m
+
+## tmux windows firstmate is supervising (real tmux server)
+0: bash* (1 panes) [80x24] [layout b25d,80x24,0,0,0] @0 (active)
+2: fm-exec-bounce (1 panes) [80x24] [layout b260,80x24,0,0,3] @3
+3: fm-exec-esc (1 panes) [80x24] [layout b261,80x24,0,0,4] @4
+4: fm-exec-retry (1 panes) [80x24] [layout b262,80x24,0,0,5] @5
+5: fm-exec-held (1 panes) [80x24] [layout b263,80x24,0,0,6] @6
+6: fm-exec-long (1 panes) [80x24] [layout b264,80x24,0,0,7] @7
+
+## pane tail of the escalated task exec-esc (incarnation 2 died at launch)
+prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M2SJPRYTF5W9TT5JZMZ0TD56/bin/fm
+-operational-input.sh' encode launch-brief < '/tmp/fm-exec-live.ULxmVx/home/data
+/exec-esc/launch-brief.md')"; printf '%s\n' "$?" > '/tmp/fm-exec-live.ULxmVx/hom
+e/state/exec-esc.executor-exit'
+Invalid API key · Please run /login
+bash-5.3$
