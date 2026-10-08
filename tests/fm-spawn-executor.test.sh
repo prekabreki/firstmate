@@ -26,6 +26,10 @@
 #   (g) a fresh spawn resets a stale fm/<id> left by an earlier partial
 #       failure onto the freshened base, and refuses with git's own words
 #       when another worktree holds that branch
+#   (h) a foreman-onboarded project: intake refuses an issue without
+#       ready-for-agent and a repository the captain does not own, exec:pro
+#       requires launching on --pro, and a launch claims the issue in-progress;
+#       a project without .foreman.local makes no gh call at all
 set -u
 
 # shellcheck source=tests/fixtures.sh
@@ -328,6 +332,105 @@ test_stale_branch_retry_and_held_branch_refusal() {
   pass "a stale fm/<id> is reset onto the freshened base on retry; a held branch refuses with git's reason"
 }
 
+
+# A foreman-onboarded project: .foreman.local at the project root and a fake gh
+# that names the account and repository, serves the issue's labels, and logs
+# every call. Labels come from <case>/labels, one per line.
+onboard_case() {  # <case-record> <labels> [owner]
+  local owner=${3:-captain}
+  read_case "$1"
+  local case_dir=${HOME_DIR%/home}
+  printf 'FOREMAN_VERIFY_CMD="make ci"\n' > "$PROJ_DIR/.foreman.local"
+  printf '%s\n' "$2" > "$case_dir/labels"
+  cat > "$FAKEBIN_DIR/gh" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> '$case_dir/gh.log'
+case " \$* " in
+  *" api user "*) echo captain ;;
+  *" repo view "*) echo '$owner/project' ;;
+  *" issue view "*"--json labels"*) cat '$case_dir/labels' ;;
+  *" issue edit "*) exit 0 ;;
+  *) echo "fake gh: unexpected \$*" >&2; exit 1 ;;
+esac
+SH
+  chmod +x "$FAKEBIN_DIR/gh"
+}
+
+test_foreman_intake_claims_a_ready_issue() {
+  local rec id out rc case_dir
+  id=exec-fm-h1
+  rec=$(make_case fm-ready); read_case "$rec"; case_dir=${HOME_DIR%/home}
+  onboard_case "$rec" $'bug\nready-for-agent'
+  executor_brief "$HOME_DIR" "$id" 7
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode); rc=$?
+  expect_code 0 "$rc" "a ready issue on an owned onboarded repo spawns: $out"
+  grep -qx 'issue edit 7 --add-label in-progress --remove-label ready-for-agent,needs-replan' "$case_dir/gh.log" \
+    || fail "the launch must claim the issue in-progress: $(cat "$case_dir/gh.log")"
+  pass "foreman intake: a ready-for-agent issue launches and is claimed in-progress"
+}
+
+test_foreman_intake_refuses_unpromoted_and_foreign() {
+  local rec id out rc case_dir
+  id=exec-fm-h2
+  rec=$(make_case fm-unready); read_case "$rec"; case_dir=${HOME_DIR%/home}
+  onboard_case "$rec" $'bug\nscoped'
+  executor_brief "$HOME_DIR" "$id" 7
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode); rc=$?
+  expect_code 1 "$rc" "an issue without ready-for-agent must be refused"
+  assert_contains "$out" "does not carry 'ready-for-agent'" "the refusal names the missing label"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a refused intake must launch nothing"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "a refused intake must write no task record"
+  ! grep -q 'issue edit' "$case_dir/gh.log" || fail "a refused intake must write no label"
+
+  id=exec-fm-h3
+  rec=$(make_case fm-foreign); read_case "$rec"; case_dir=${HOME_DIR%/home}
+  onboard_case "$rec" 'ready-for-agent' someorg
+  executor_brief "$HOME_DIR" "$id" 7
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode); rc=$?
+  expect_code 1 "$rc" "a repository the captain does not own must be refused"
+  assert_contains "$out" 'someorg/project is not owned by captain' "the refusal names the owner"
+  ! grep -q 'issue edit' "$case_dir/gh.log" || fail "no label write may reach a foreign repository"
+  pass "foreman intake refuses an unpromoted issue and a repository the captain does not own"
+}
+
+test_foreman_exec_pro_requires_the_pro_profile() {
+  local rec id out rc meta
+  id=exec-fm-h4
+  rec=$(make_case fm-pro); read_case "$rec"
+  onboard_case "$rec" $'ready-for-agent\nexec:pro'
+  executor_brief "$HOME_DIR" "$id" 7
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-flash); rc=$?
+  expect_code 1 "$rc" "exec:pro without --pro must be refused"
+  assert_contains "$out" "carries 'exec:pro'; pass --pro" "the refusal asks for the pro profile"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-flash --pro opencode:deepseek/deepseek-v4-pro); rc=$?
+  expect_code 1 "$rc" "exec:pro launched off its pro profile must be refused"
+  assert_contains "$out" 'pass --harness opencode --model deepseek/deepseek-v4-pro' "the refusal names the exact pro flags"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-v4-pro --pro opencode:deepseek/deepseek-v4-pro); rc=$?
+  expect_code 0 "$rc" "exec:pro on its pro profile spawns: $out"
+  meta="$HOME_DIR/state/$id.meta"
+  assert_grep 'executor_pro=opencode:deepseek/deepseek-v4-pro' "$meta" "the pro profile is recorded for relaunch"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" exec-fm-h5 "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode --pro opencode); rc=$?
+  expect_code 1 "$rc" "a malformed --pro must be refused"
+  pass "an exec:pro issue launches only on the --pro profile, which the task records"
+}
+
+test_plain_project_makes_no_gh_call() {
+  local rec id out rc case_dir
+  id=exec-fm-h6
+  rec=$(make_case fm-plain); read_case "$rec"; case_dir=${HOME_DIR%/home}
+  cat > "$FAKEBIN_DIR/gh" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> '$case_dir/gh.log'
+exit 1
+SH
+  chmod +x "$FAKEBIN_DIR/gh"
+  executor_brief "$HOME_DIR" "$id" 7
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 7 --yolo off --harness opencode); rc=$?
+  expect_code 0 "$rc" "a project without .foreman.local keeps the plain lane: $out"
+  [ ! -e "$case_dir/gh.log" ] || fail "a plain project must make no gh call: $(cat "$case_dir/gh.log")"
+  pass "a project with no .foreman.local runs the plain executor lane with no label traffic"
+}
+
 test_executor_spawn_records_meta_branch_and_poll
 test_headless_templates_per_adapter
 test_executor_refusals
@@ -335,3 +438,7 @@ test_brief_and_spawn_kind_agreement
 test_raw_command_receives_brief_as_final_argument
 test_posture_guard
 test_stale_branch_retry_and_held_branch_refusal
+test_foreman_intake_claims_a_ready_issue
+test_foreman_intake_refuses_unpromoted_and_foreign
+test_foreman_exec_pro_requires_the_pro_profile
+test_plain_project_makes_no_gh_call

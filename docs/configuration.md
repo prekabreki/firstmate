@@ -1120,6 +1120,7 @@ This section is the single owner of the canonical schema and its per-field seman
       "use": [
         { "harness": "<adapter>", "model": "<optional model>", "effort": "<low|medium|high|xhigh|max|ultra, optional>", "provider": "<optional quota-axi provider>", "floor": { "scope": "<quota-axi scope>", "min_percent": 50 } }
       ],
+      "pro": { "harness": "<adapter>", "model": "<model>" },
       "why": "<optional rationale that helps firstmate choose>"
     }
   ],
@@ -1138,6 +1139,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
+| Rule `pro` | Optional executor escalation profile, a single object with both `harness` and `model`. Firstmate passes it to an executor spawn as `--pro <harness>:<model>`; an issue carrying foreman's `exec:pro` label then launches and relaunches on it (the executor-dispatch skill). |
 
 **Fields applied only by typed resolution**
 

@@ -2,7 +2,7 @@
 name: executor-dispatch
 description: >-
   Agent-only judgment for the executor task kind: a cheap one-shot headless worker that closes one scoped GitHub issue and opens a pull request that firstmate reviews by the real diff.
-  Load when classifying a deliverable as executor at intake, before writing the issue it will close, before launching more than one executor, on an executor-ready, executor-failed, or executor-stale check wake, and before merging, bouncing, or escalating an executor's pull request.
+  Load when classifying a deliverable as executor at intake, before writing the issue it will close, before launching more than one executor, on an executor-ready, executor-stopped, executor-failed, or executor-stale check wake, and before merging, bouncing, or escalating an executor's pull request.
 user-invocable: false
 metadata:
   internal: true
@@ -11,7 +11,7 @@ metadata:
 # executor-dispatch
 
 This skill is the single owner of the judgment around the executor task kind.
-The scripts own the mechanics and their headers own the exact flags: `bin/fm-brief.sh --executor`, `bin/fm-spawn.sh --executor`, `bin/fm-executor-poll.sh`, `bin/fm-executor-lib.sh`, `bin/fm-crew-state.sh`, `bin/fm-control.sh`, `bin/fm-pr-check.sh`, `bin/fm-review-diff.sh`, `bin/fm-pr-merge.sh`, and `bin/fm-teardown.sh`.
+The scripts own the mechanics and their headers own the exact flags: `bin/fm-brief.sh --executor`, `bin/fm-spawn.sh --executor`, `bin/fm-executor-poll.sh`, `bin/fm-executor-lib.sh`, `bin/fm-crew-state.sh`, `bin/fm-control.sh`, `bin/fm-pr-check.sh`, `bin/fm-review-diff.sh`, `bin/fm-pr-merge.sh`, `bin/fm-executor-bounce.sh`, and `bin/fm-teardown.sh`.
 Nothing here restates them.
 
 ## When to choose executor over ship
@@ -53,10 +53,21 @@ Right-size it: an issue that needs more than one pull request, more than one ver
 
 ## Intake mechanics
 
-File the backlog item with `bin/fm-tasks-axi.sh add <id> "<title>" --kind executor`, then scaffold with `bin/fm-brief.sh <id> <repo> --executor --issue <N> --verify "<command>"`, resolving the project's CI-equivalent gate yourself; the scaffold never guesses it.
-Resolve the profile through `config/crew-dispatch.json` and `quota-array-dispatch` exactly as for a crewmate, then spawn with `bin/fm-spawn.sh <id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] --harness <adapter> [--model <name>] [--effort <level>]`.
+File the backlog item with `bin/fm-tasks-axi.sh add <id> "<title>" --kind executor`, then scaffold with `bin/fm-brief.sh <id> <repo> --executor --issue <N> [--verify "<command>"]`.
+On a foreman-onboarded project (a `.foreman.local` at its root) omit `--verify`: the scaffold reads the declared gate and its path legs through `foreman`, and refuses when the issue touches a leg with no command, which means the issue or `.foreman.local` needs fixing first, never a hand-written gate.
+On any other project resolve the CI-equivalent gate yourself and pass it; the scaffold never guesses it.
+Resolve the profile through `config/crew-dispatch.json` and `quota-array-dispatch` exactly as for a crewmate, then spawn with `bin/fm-spawn.sh <id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] --harness <adapter> [--model <name>] [--effort <level>] [--pro <harness>:<model>]`, passing the matched rule's `pro` profile as `--pro` whenever the rule declares one.
 The spawn refuses an adapter without a verified headless form; `bin/fm-spawn.sh --help` names the accepted set and the raw-command escape hatch.
 An executor delivers direct-PR, so on a project whose standing posture is stricter (no-mistakes, the unregistered default, or no-mistakes-prod-only) the spawn refuses unless you pass `--accept-direct-pr`, and you pass it only on the captain's present word for this task, never on your own judgment; otherwise dispatch a no-mistakes ship task instead.
+When the launch profile's model is a DeepSeek model, run `foreman peak-status` and show its one line to the captain with the launch; it is a note, not a gate.
+
+## The foreman label lifecycle
+
+A foreman-onboarded project keeps foreman's labels true, so its board reads the same whether foreman or firstmate dispatched the work.
+The spawn refuses an issue without `ready-for-agent`: that label is the captain's promotion, so never add it yourself to get past the refusal.
+It also refuses a repository the captain does not own, because every label write speaks for the captain.
+A successful spawn or relaunch claims the issue as `in-progress`.
+An issue carrying `exec:pro` launches only on the `--pro` profile, and `bin/fm-control.sh <id> relaunch` with no harness or model moves it there by itself.
 
 ## Canary rule
 
@@ -72,6 +83,7 @@ The three executor outcomes arrive as `check:` wakes carrying the poll's line; `
 
 - `executor-ready: PR <url> <draft|ready>`: run `bin/fm-pr-check.sh <id> <url>` with the exact URL from the line, then review under the rubric below.
 - `executor-failed: ...`: read the endpoint's final output with `bin/fm-peek.sh <id>`, then choose between re-scoping the issue and relaunching, relaunching on a stronger profile with `bin/fm-control.sh <id> relaunch --harness <adapter> [--model <name>] [--effort <level>]`, or the captain.
+- `executor-stopped: operator exit ...`: firstmate or the captain stopped it; it says nothing about the issue, so relaunch or tear down by the reason for the stop, and never re-scope on it.
 - `executor-stale: running <N>m past the bound`: inspect the endpoint, then stop it with `bin/fm-control.sh <id> exit` or let it run when the output shows real progress.
 
 An executor reads no steering inbox; changing what it does means re-scoping the issue and relaunching.
@@ -87,7 +99,8 @@ A draft is a non-merge until reviewed.
 Verdicts:
 
 - MERGE through `bin/fm-pr-merge.sh` under the task's `yolo` posture or the captain's explicit word.
-- BOUNCE by closing the pull request with a precise, actionable comment through `gh-axi`, keeping the remote branch, re-scoping the issue, and relaunching or re-dispatching.
+- BOUNCE with `bin/fm-executor-bounce.sh <id> <url> <comment-file>`: the comment file is a precise, actionable statement of what failed, the script closes the pull request and keeps its branch, and on a foreman-onboarded project it moves the issue to `needs-replan`, or to `needs-human` on a second bounce.
+  Then re-scope the issue and relaunch or re-dispatch, except after a `needs-human` bounce, which waits for the captain.
 - ESCALATE to the captain only for a genuine intent question, and for a second failure of the same issue.
 
 Uncertain equals bounce.

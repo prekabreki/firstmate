@@ -11,6 +11,10 @@
 #   (d) --mode, --scout, --secondmate, and --herdr-lab are refused with
 #       --executor; --issue and --verify are refused without it
 #   (e) fm_brief_executor_issue reads the contract line and rejects ship briefs
+#   (f) without --verify, a foreman-onboarded project's gate is read through the
+#       real `foreman` CLI: FOREMAN_VERIFY_CMD alone, composed with matched path
+#       legs (each in its own subshell, proven by running it), refused on an
+#       unbacked leg, refused loudly when foreman is missing, and never sourced
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -99,7 +103,7 @@ test_issue_and_verify_are_required_and_validated() {
   assert_contains "$out" 'positive integer' "invalid issue names the shape"
   out=$(run_brief "$home" exec-req-c1 widget-repo --executor --issue 12); rc=$?
   expect_code 1 "$rc" "missing --verify must refuse"
-  assert_contains "$out" 'requires --verify' "missing --verify names the flag"
+  assert_contains "$out" 'no --verify given' "missing --verify on a non-onboarded project names the flag"
   out=$(run_brief "$home" exec-req-c1 widget-repo --executor --issue 12 --verify '   '); rc=$?
   expect_code 1 "$rc" "a blank --verify must refuse"
   out=$(run_brief "$home" exec-req-c1 widget-repo --executor --issue 12 --verify 'run <VERIFY>'); rc=$?
@@ -150,8 +154,120 @@ test_contract_reader() {
   pass "fm_brief_executor_issue reads exactly the executor contract line"
 }
 
+
+FOREMAN_BIN=$(command -v foreman 2>/dev/null || true)
+
+# An onboarded project clone under the home's projects dir, plus a fakebin whose
+# gh serves one issue body to foreman compose-verify. Echoes the fakebin.
+onboard_project() {  # <home> <repo> <foreman-local-body> <issue-body>
+  local home=$1 repo=$2 cfg=$3 body=$4 fakebin
+  mkdir -p "$home/projects/$repo"
+  printf '%s\n' "$cfg" > "$home/projects/$repo/.foreman.local"
+  fakebin="$home/fakebin"
+  mkdir -p "$fakebin"
+  python3 -c 'import json,sys; print(json.dumps({"body": sys.argv[1]}))' "$body" > "$home/issue.json"
+  cat > "$fakebin/gh" <<SH
+#!/usr/bin/env bash
+case " \$* " in
+  *" issue view "*"--json body"*) cat '$home/issue.json' ;;
+  *) echo "fake gh: unexpected \$*" >&2; exit 1 ;;
+esac
+SH
+  chmod +x "$fakebin/gh"
+  printf '%s\n' "$fakebin"
+}
+
+run_brief_path() {  # <path> <home> <args...>
+  local path=$1 home=$2
+  shift 2
+  PATH="$path" FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_DATA_OVERRIDE="$home/data" FM_STATE_OVERRIDE="$home/state" \
+    FM_PROJECTS_OVERRIDE="$home/projects" "$BRIEF_BIN" "$@" 2>&1
+}
+
+# The issue bodies carry literal markdown backticks, not command substitutions.
+# shellcheck disable=SC2016
+test_foreman_gate_read_without_verify() {
+  local home fakebin out rc brief marker
+  if [ -z "$FOREMAN_BIN" ]; then pass "SKIP: foreman not on PATH"; return 0; fi
+  home=$(new_home foreman-base)
+  marker="$home/pwned"
+  fakebin=$(onboard_project "$home" widget-repo "touch $marker
+FOREMAN_VERIFY_CMD=\"make ci && make lint\"" 'Touches `src/a.py`.')
+  out=$(run_brief_path "$fakebin:$(dirname "$FOREMAN_BIN"):$PATH" "$home" exec-fg-f1 widget-repo --executor --issue 9); rc=$?
+  expect_code 0 "$rc" "an onboarded project scaffolds without --verify: $out"
+  brief="$home/data/exec-fg-f1/brief.md"
+  assert_grep 'make ci && make lint' "$brief" "the brief carries FOREMAN_VERIFY_CMD verbatim when no leg is declared"
+  [ ! -e "$marker" ] || fail ".foreman.local must never be executed"
+  out=$(run_brief_path "$fakebin:$(dirname "$FOREMAN_BIN"):$PATH" "$home" exec-fg-f2 widget-repo --executor --issue 9 --verify 'make other'); rc=$?
+  expect_code 0 "$rc" "an explicit --verify still scaffolds"
+  assert_grep 'make other' "$home/data/exec-fg-f2/brief.md" "an explicit --verify wins over .foreman.local"
+  pass "without --verify the onboarded project's gate is read through foreman, never by sourcing"
+}
+
+# The issue bodies carry literal markdown backticks, not command substitutions.
+# shellcheck disable=SC2016
+test_foreman_two_legs_compose_and_run() {
+  local home fakebin out rc proj gate
+  if [ -z "$FOREMAN_BIN" ]; then pass "SKIP: foreman not on PATH"; return 0; fi
+  home=$(new_home foreman-legs)
+  fakebin=$(onboard_project "$home" widget-repo 'FOREMAN_VERIFY_CMD="test -f top.txt"
+FOREMAN_VERIFY_LEGS="
+sub/** = cd sub && test -f here.txt
+web/** = test -f top.txt
+"' 'Files: `sub/a.py` and `web/b.ts`.')
+  out=$(run_brief_path "$fakebin:$(dirname "$FOREMAN_BIN"):$PATH" "$home" exec-fl-f3 widget-repo --executor --issue 9); rc=$?
+  expect_code 0 "$rc" "two backed legs scaffold: $out"
+  gate='( test -f top.txt ) && ( cd sub && test -f here.txt ) && ( test -f top.txt )'
+  assert_grep "$gate" "$home/data/exec-fl-f3/brief.md" "both legs compose, each in its own subshell"
+  # Run the composed gate end to end: the second leg passes only if the first
+  # leg's cd stayed inside its subshell, and a failing leg reddens the whole.
+  proj="$home/projects/widget-repo"
+  mkdir -p "$proj/sub"
+  : > "$proj/top.txt"
+  : > "$proj/sub/here.txt"
+  (cd "$proj" && eval "$gate") || fail "the composed gate must pass when every leg passes from the right directory"
+  rm "$proj/sub/here.txt"
+  ! (cd "$proj" && eval "$gate") || fail "a failing leg must fail the composed gate"
+  pass "two path legs compose in subshells and the composed gate runs correctly end to end"
+}
+
+# The issue bodies carry literal markdown backticks, not command substitutions.
+# shellcheck disable=SC2016
+test_foreman_unbacked_leg_refuses() {
+  local home fakebin out rc
+  if [ -z "$FOREMAN_BIN" ]; then pass "SKIP: foreman not on PATH"; return 0; fi
+  home=$(new_home foreman-unbacked)
+  fakebin=$(onboard_project "$home" widget-repo 'FOREMAN_VERIFY_CMD="make ci"
+FOREMAN_VERIFY_LEGS="
+frontend/** =
+"' 'Touches `frontend/app.ts`.')
+  out=$(run_brief_path "$fakebin:$(dirname "$FOREMAN_BIN"):$PATH" "$home" exec-fu-f4 widget-repo --executor --issue 9); rc=$?
+  expect_code 1 "$rc" "an unbacked leg must refuse the scaffold"
+  assert_contains "$out" 'WARN #9 touches frontend/**' "foreman's WARN line reaches the operator"
+  assert_contains "$out" 'refusing to scaffold exec-fu-f4' "the refusal names the task"
+  [ ! -e "$home/data/exec-fu-f4/brief.md" ] || fail "a refused scaffold must write no brief"
+  pass "an issue touching a declared-but-unbacked leg refuses the scaffold with foreman's WARN"
+}
+
+test_foreman_missing_fails_loudly() {
+  local home fakebin out rc path
+  home=$(new_home foreman-missing)
+  fakebin=$(onboard_project "$home" widget-repo 'FOREMAN_VERIFY_CMD="make ci"' 'x')
+  # PATH without any foreman: only the fakebin and the system dirs.
+  path="$fakebin:/usr/bin:/bin"
+  out=$(run_brief_path "$path" "$home" exec-fm-f5 widget-repo --executor --issue 9); rc=$?
+  expect_code 1 "$rc" "a missing foreman must refuse"
+  assert_contains "$out" "'foreman' is not on PATH" "the refusal names the missing tool"
+  [ ! -e "$home/data/exec-fm-f5/brief.md" ] || fail "no brief with an empty gate"
+  pass "a missing foreman fails loudly instead of scaffolding an empty gate"
+}
+
 test_executor_scaffold_shape
 test_executor_brief_omits_interactive_contracts
 test_issue_and_verify_are_required_and_validated
 test_executor_flag_exclusions
 test_contract_reader
+test_foreman_gate_read_without_verify
+test_foreman_two_legs_compose_and_run
+test_foreman_unbacked_leg_refuses
+test_foreman_missing_fails_loudly

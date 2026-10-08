@@ -1124,6 +1124,7 @@ crew_dispatch_validate() {
     elif [(.rules // [])[]? | select((.use? | type) == "array" and (.use | length) == 0)] | length > 0 then "each rule needs at least one use profile"
     elif [(.rules // [])[]? | profiles(.use?)[]? | select(type != "object")] | length > 0 then "each use profile must be an object"
     elif [(.rules // [])[]? | profiles(.use?)[]? | select((.harness? | type) != "string" or (.harness | length) == 0)] | length > 0 then "each use profile needs harness"
+    elif [(.rules // [])[]? | select(has("pro")) | .pro | select(type != "object" or (.harness? | type) != "string" or (.harness | length) == 0 or (.model? | type) != "string" or (.model | length) == 0)] | length > 0 then "rule pro must be one profile object with non-empty harness and model"
     elif malformed_optional_fields([(.rules // [])[]? | profiles(.use?)[]?]) then
       if $typed then "use profile model and effort must be non-empty strings, and provider must match ^[a-z0-9]+(-[a-z0-9]+)*\\z when present"
       else "use profile model and effort must be non-empty strings when present"

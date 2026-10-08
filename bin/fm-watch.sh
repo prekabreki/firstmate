@@ -84,6 +84,7 @@
 #   check: <script>: <out> authenticated check output, always actionable
 #   check: <state>/<id>.check.sh: executor-ready: PR <url> <draft|ready>
 #   check: <state>/<id>.check.sh: executor-failed: <no commits and no PR ...|committed but no PR>
+#   check: <state>/<id>.check.sh: executor-stopped: operator exit before any PR ...
 #   check: <state>/<id>.check.sh: executor-stale: running <N>m past the bound
 #                          the structural outcomes of a kind=executor task's
 #                          poll (bin/fm-executor-poll.sh over the validated

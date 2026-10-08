@@ -32,6 +32,7 @@
 #   working <minutes>                 process running inside the bound
 #   stale <minutes-past-bound>        process running past FM_EXECUTOR_MAX_RUNTIME
 #   ready <url> <draft|ready|merged>  exited with a pull request on fm/<id>
+#   stopped-by-operator               fm-control `exit` stopped it, no pull request
 #   failed-no-commits                 exited, no pull request, branch at its base
 #   failed-no-pr                      exited, no pull request, commits on the branch
 # It returns 0 with one of those verdicts, 2 when gh could not answer (the
@@ -320,6 +321,12 @@ fm_executor_classify() {  # <state> <id> <gen> <worktree> <backend> <target> <ba
     printf 'ready %s %s\n' "$url" "$flag"
     return 0
   fi
+  # An operator-ordered stop is not a failure of the issue: naming it keeps
+  # firstmate from re-scoping an issue the executor never actually failed.
+  if [ "$(head -n 1 "$marker" 2>/dev/null)" = operator-exit ]; then
+    printf 'stopped-by-operator\n'
+    return 0
+  fi
   ahead=$(git -C "$worktree" rev-list --count "$base..HEAD" 2>/dev/null) || return 1
   case "$ahead" in
     ''|*[!0-9]*) return 1 ;;
@@ -346,6 +353,7 @@ fm_executor_poll_line() {  # <verdict-line>
         *) printf 'executor-ready: PR %s ready\n' "${rest% *}" ;;
       esac
       ;;
+    stopped-by-operator) printf 'executor-stopped: operator exit before any PR (not a failure of the issue)\n' ;;
     failed-no-commits) printf 'executor-failed: no commits and no PR (verify likely failed before commit)\n' ;;
     failed-no-pr) printf 'executor-failed: committed but no PR\n' ;;
     *) return 1 ;;
@@ -358,6 +366,7 @@ fm_executor_outcome_key() {  # <poll-line>
   case "$1" in
     'executor-ready: PR '*' draft') printf 'ready-draft' ;;
     'executor-ready: PR '*' ready') printf 'ready-ready' ;;
+    'executor-stopped: operator exit'*) printf 'stopped-by-operator' ;;
     'executor-failed: no commits and no PR'*) printf 'failed-no-commits' ;;
     'executor-failed: committed but no PR') printf 'failed-no-pr' ;;
     'executor-stale: running '*) printf 'stale' ;;
@@ -420,4 +429,155 @@ fm_executor_incarnation_records_remove() {  # <state> <id>
     [ -f "$path" ] && [ ! -L "$path" ] || return 1
     rm -f -- "$path" || return 1
   done
+}
+
+# --- the foreman contract ----------------------------------------------------
+# A project onboarded to foreman (a `.foreman.local` at its root) already
+# declares its gate and lives under foreman's label lifecycle; the executor
+# lane honours both so an onboarded repo works unchanged. The contract source
+# is vibe-skills' foreman-init (REFERENCE.md's label table; foreman.py's
+# load_config, parse_verify_legs, compose-verify). `.foreman.local` is only
+# ever read through the `foreman` CLI: one parser, and never `source`d, since
+# sourcing a config to learn a value executes it.
+
+FM_EXECUTOR_LABEL_READY=ready-for-agent
+FM_EXECUTOR_LABEL_INPROGRESS=in-progress
+FM_EXECUTOR_LABEL_BOUNCED=bounced
+FM_EXECUTOR_LABEL_REPLAN=needs-replan
+FM_EXECUTOR_LABEL_HUMAN=needs-human
+# Read by bin/fm-spawn.sh and bin/fm-control.sh, which source this file.
+# shellcheck disable=SC2034
+FM_EXECUTOR_LABEL_PRO=exec:pro
+
+fm_executor_foreman_config() {  # <project-dir>
+  printf '%s/.foreman.local' "$1"
+}
+
+# A missing `foreman` must fail loudly: falling back to an empty gate would
+# hand the executor no definition of green.
+fm_executor_foreman_require() {
+  command -v foreman >/dev/null 2>&1 && return 0
+  echo "error: 'foreman' is not on PATH; the executor lane reads .foreman.local only through it (install: vibe-skills foreman-init SKILL.md, step 4)" >&2
+  return 1
+}
+
+# The project's composed gate for one issue: FOREMAN_VERIFY_CMD plus every path
+# leg the issue's file pointers match, each in its own subshell (foreman's
+# compose_verify owns why). Prints the gate. Returns 0; 4 when a matched leg
+# has no command (foreman's WARN line is on stderr; the caller refuses); 1 on
+# any other failure, with the reason on stderr.
+fm_executor_foreman_verify() {  # <project-dir> <issue>
+  local proj=$1 issue=$2 cfg base gate rc
+  cfg=$(fm_executor_foreman_config "$proj")
+  [ -f "$cfg" ] && [ ! -L "$cfg" ] || {
+    echo "error: $proj has no .foreman.local, so there is no declared gate to read; pass --verify \"<command>\" explicitly" >&2
+    return 1
+  }
+  fm_executor_foreman_require || return 1
+  base=$(foreman config-get FOREMAN_VERIFY_CMD --config "$cfg") || {
+    echo "error: foreman could not read FOREMAN_VERIFY_CMD from $cfg" >&2
+    return 1
+  }
+  [ -n "$(printf '%s' "$base" | tr -d '[:space:]')" ] || {
+    echo "error: $cfg declares an empty FOREMAN_VERIFY_CMD; set the project's gate there or pass --verify \"<command>\"" >&2
+    return 1
+  }
+  gate=$(cd "$proj" && foreman compose-verify --issue "$issue" --verify "$base" --config "$cfg")
+  rc=$?
+  case "$rc" in
+    0) ;;
+    4) return 4 ;;
+    *)
+      echo "error: foreman compose-verify failed for issue #$issue in $proj (exit $rc)" >&2
+      return 1
+      ;;
+  esac
+  [ -n "$(printf '%s' "$gate" | tr -d '[:space:]')" ] || {
+    echo "error: foreman composed an empty gate for issue #$issue" >&2
+    return 1
+  }
+  printf '%s\n' "$gate"
+}
+
+# Label writes speak for the captain on GitHub, so they only ever reach a
+# repository the authenticated account owns; an org or third-party repository
+# is refused. Prints owner/name. Returns 0 owned, 1 not owned (reason on
+# stderr), 2 when gh could not answer.
+fm_executor_repo_owned() {  # <project-dir>
+  local proj=$1 viewer repo
+  command -v gh >/dev/null 2>&1 || { echo "error: gh is not on PATH" >&2; return 2; }
+  viewer=$(cd "$proj" && gh api user --jq .login 2>/dev/null) && [ -n "$viewer" ] || {
+    echo "error: gh could not name the authenticated account" >&2
+    return 2
+  }
+  repo=$(cd "$proj" && gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) && [ -n "$repo" ] || {
+    echo "error: gh could not resolve the GitHub repository for $proj" >&2
+    return 2
+  }
+  if [ "${repo%%/*}" != "$viewer" ]; then
+    echo "error: $repo is not owned by $viewer; the executor lane writes issue labels only on the captain's own repositories" >&2
+    return 1
+  fi
+  printf '%s\n' "$repo"
+}
+
+# One label per line. Returns 2 when gh could not answer.
+fm_executor_issue_labels() {  # <project-dir> <issue>
+  (cd "$1" && gh issue view "$2" --json labels --jq '.labels[].name') 2>/dev/null || return 2
+}
+
+fm_executor_labels_have() {  # <labels> <name>
+  printf '%s\n' "$1" | grep -Fxq -- "$2"
+}
+
+# The only label writer: refuses unless the captain owns the repository.
+fm_executor_issue_relabel() {  # <project-dir> <issue> <add-csv> <remove-csv>
+  local proj=$1 issue=$2 add=$3 remove=$4
+  local -a args=()
+  fm_executor_repo_owned "$proj" >/dev/null || return 1
+  [ -z "$add" ] || args+=(--add-label "$add")
+  [ -z "$remove" ] || args+=(--remove-label "$remove")
+  [ "${#args[@]}" -gt 0 ] || return 0
+  (cd "$proj" && gh issue edit "$issue" "${args[@]}") >/dev/null || {
+    echo "error: gh could not relabel issue #$issue (add: ${add:-none}; remove: ${remove:-none})" >&2
+    return 1
+  }
+}
+
+# Spawn and relaunch claim the issue, foreman-dispatch's transition.
+fm_executor_issue_claim() {  # <project-dir> <issue>
+  fm_executor_issue_relabel "$1" "$2" "$FM_EXECUTOR_LABEL_INPROGRESS" \
+    "$FM_EXECUTOR_LABEL_READY,$FM_EXECUTOR_LABEL_REPLAN"
+}
+
+# A bounce, per foreman-status: the first adds the sticky `bounced` plus
+# `needs-replan`; one on an issue already carrying `bounced` escalates to
+# `needs-human` instead. Prints the label the issue now waits under.
+fm_executor_issue_bounce() {  # <project-dir> <issue>
+  local proj=$1 issue=$2 labels
+  labels=$(fm_executor_issue_labels "$proj" "$issue") || {
+    echo "error: gh could not read issue #$issue's labels" >&2
+    return 1
+  }
+  if fm_executor_labels_have "$labels" "$FM_EXECUTOR_LABEL_BOUNCED"; then
+    fm_executor_issue_relabel "$proj" "$issue" "$FM_EXECUTOR_LABEL_HUMAN" "$FM_EXECUTOR_LABEL_INPROGRESS" || return 1
+    printf '%s\n' "$FM_EXECUTOR_LABEL_HUMAN"
+  else
+    fm_executor_issue_relabel "$proj" "$issue" "$FM_EXECUTOR_LABEL_BOUNCED,$FM_EXECUTOR_LABEL_REPLAN" "$FM_EXECUTOR_LABEL_INPROGRESS" || return 1
+    printf '%s\n' "$FM_EXECUTOR_LABEL_REPLAN"
+  fi
+}
+
+# --pro <harness>:<model>: the matched dispatch rule's escalation profile.
+# The harness never contains a colon; the model may, so split at the first.
+fm_executor_pro_profile_valid() {  # <harness:model>
+  local p=$1
+  case "$p" in
+    *:*) ;;
+    *) return 1 ;;
+  esac
+  [ -n "${p%%:*}" ] && [ -n "${p#*:}" ] || return 1
+  case "$p" in
+    *[[:space:][:cntrl:]]*) return 1 ;;
+  esac
 }

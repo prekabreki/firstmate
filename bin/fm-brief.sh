@@ -16,7 +16,7 @@
 # PR instead of shipping a new one).
 # Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit> [--shape squash]] [--herdr-lab]
 #        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab]
-#        fm-brief.sh <task-id> <repo-name> --executor --issue <N> --verify "<command>"
+#        fm-brief.sh <task-id> <repo-name> --executor --issue <N> [--verify "<command>"]
 #        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects}
 #   --scout writes the scout contract instead: the deliverable is a report at
 #   data/<task-id>/report.md (no branch, no push, no PR) and the worktree is scratch.
@@ -45,10 +45,15 @@
 #   a cheap one-shot model is never asked to operate firstmate's interactive
 #   contracts, and firstmate derives its state structurally (bin/fm-executor-lib.sh).
 #   It keeps the worktree-isolation assertion in one actionable line. --issue
-#   is REQUIRED and must be a positive integer. --verify is REQUIRED and
-#   non-empty: firstmate resolves the project's CI-equivalent gate at intake
-#   and passes it explicitly, exactly as it passes --mode to a ship brief; this
-#   script never guesses it. The brief records a fixed machine-readable
+#   is REQUIRED and must be a positive integer. The gate is never guessed:
+#   an explicit non-empty --verify wins; without it the project clone
+#   (projects/<repo-name>, or $FM_PROJECTS_OVERRIDE) must be foreman-onboarded,
+#   and the gate is its .foreman.local FOREMAN_VERIFY_CMD composed with every
+#   path leg the issue's file pointers match, read only through the `foreman`
+#   CLI (bin/fm-executor-lib.sh's fm_executor_foreman_verify). A matched leg
+#   with no command refuses the scaffold with foreman's WARN line, and a
+#   missing `foreman` or .foreman.local refuses rather than falling back to an
+#   empty gate. The brief records a fixed machine-readable
 #   "Delivery contract: kind=executor issue=<N>" line that bin/fm-spawn.sh
 #   --executor checks against its own --issue, so brief and spawn cannot drift,
 #   and a ship or scout spawn refuses an executor brief through the same line.
@@ -287,8 +292,8 @@ done
 if [ "$KIND" = executor ]; then
   [ "$ISSUE_SET" -eq 1 ] || { echo "error: --executor requires --issue <N>, the GitHub issue the executor closes" >&2; exit 1; }
   fm_executor_issue_valid "$ISSUE" || { echo "error: --issue must be a positive integer (got '$ISSUE')" >&2; exit 1; }
-  [ "$VERIFY_SET" -eq 1 ] && [ -n "$(printf '%s' "$VERIFY" | tr -d '[:space:]')" ] || {
-    echo "error: --executor requires --verify \"<command>\", the project's CI-equivalent gate resolved at intake; an empty or omitted gate would leave the executor without a definition of green" >&2
+  [ "$VERIFY_SET" -eq 0 ] || [ -n "$(printf '%s' "$VERIFY" | tr -d '[:space:]')" ] || {
+    echo "error: --verify is empty; pass the project's CI-equivalent gate, or omit --verify on a foreman-onboarded project to read its .foreman.local gate; an empty gate would leave the executor without a definition of green" >&2
     exit 1
   }
   case "$VERIFY" in
@@ -568,6 +573,24 @@ exit 0
 fi
 
 REPO=${POS[1]}
+
+if [ "$KIND" = executor ] && [ "$VERIFY_SET" -eq 0 ]; then
+  EXECUTOR_PROJECT="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}/$REPO"
+  [ -d "$EXECUTOR_PROJECT" ] || {
+    echo "error: no --verify given and $EXECUTOR_PROJECT is not a project clone to read a .foreman.local gate from; pass --verify \"<command>\"" >&2
+    exit 1
+  }
+  EXECUTOR_GATE_RC=0
+  VERIFY=$(fm_executor_foreman_verify "$EXECUTOR_PROJECT" "$ISSUE") || EXECUTOR_GATE_RC=$?
+  case $EXECUTOR_GATE_RC in
+    0) ;;
+    4)
+      echo "error: refusing to scaffold $ID: issue #$ISSUE touches a path whose verify leg is declared but has no command in $EXECUTOR_PROJECT/.foreman.local; add the leg's command or re-scope the issue, then re-run" >&2
+      exit 1
+      ;;
+    *) exit 1 ;;
+  esac
+fi
 
 if [ "$KIND" = executor ]; then
 # The executor brief: short, numbered, and self-contained, written for a cheap

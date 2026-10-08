@@ -3,7 +3,7 @@
 # secondmate in its isolated firstmate home.
 # Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
-#        fm-spawn.sh <task-id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] [--harness <adapter>|launch-command] [--model <name>] [--effort <level>] [--backend <name>]
+#        fm-spawn.sh <task-id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] [--harness <adapter>|launch-command] [--model <name>] [--effort <level>] [--pro <harness>:<model>] [--backend <name>]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
 #   spawn and refused on --scout and --secondmate spawns. Firstmate resolves both
@@ -103,6 +103,13 @@
 #   executor arms no busy-state hooks and no turn-end wiring, and its worktree
 #   gets .fm-pr-body.md excluded from git so the pull-request body the brief
 #   asks for never reads as unlanded work.
+#   A foreman-onboarded project (a .foreman.local at its root) adds foreman's
+#   label lifecycle (bin/fm-executor-lib.sh, "the foreman contract"): a fresh
+#   spawn refuses unless the captain owns the repository and the issue carries
+#   ready-for-agent, an issue carrying exec:pro launches only on the profile
+#   passed as --pro <harness>:<model> (the matched dispatch rule's `pro`), and
+#   a successful launch or relaunch claims the issue as in-progress. --pro is
+#   recorded as executor_pro= so bin/fm-control.sh can relaunch onto it.
 #        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>]
 #   --relaunch launches a replacement agent for an EXISTING task into that
 #   task's own recorded worktree, reusing its recorded endpoint when that
@@ -760,6 +767,8 @@ ISSUE=
 ISSUE_SET=0
 ACCEPT_DIRECT_PR=0
 POSTURE_CONSENT=
+PRO_PROFILE=
+PRO_SET=0
 EXECUTOR_BASE=
 EXECUTOR_LAUNCHED=
 TRACEPARENT_ARG=
@@ -824,6 +833,10 @@ for a in "$@"; do
       ISSUE=$a
       ISSUE_SET=1
       ;;
+    pro)
+      PRO_PROFILE=$a
+      PRO_SET=1
+      ;;
     traceparent)
       TRACEPARENT_ARG=$a
       TRACEPARENT_SET=1
@@ -866,6 +879,11 @@ for a in "$@"; do
   --issue=*)
     ISSUE=${a#--issue=}
     ISSUE_SET=1
+    ;;
+  --pro) want_value=pro ;;
+  --pro=*)
+    PRO_PROFILE=${a#--pro=}
+    PRO_SET=1
     ;;
   --relaunch) RELAUNCH=1 ;;
   --herdr-resume-lock-wait) HERDR_RESUME_LOCK_WAIT=1 ;;
@@ -1011,6 +1029,10 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: --relaunch reuses the consent recorded at the executor's first spawn; --accept-direct-pr cannot be granted on a relaunch (tear the task down and spawn it afresh on the captain's word)" >&2
     exit 1
   }
+  [ "$PRO_SET" -eq 0 ] || {
+    echo "error: --relaunch reuses the task's recorded pro profile; --pro cannot override it (pass the relaunch profile to bin/fm-control.sh relaunch instead)" >&2
+    exit 1
+  }
 elif [ "$KIND" = executor ]; then
   # An executor's delivery contract (AGENTS.md section 7): the issue it closes
   # and firstmate's merge authority are required and validated here; its
@@ -1036,6 +1058,10 @@ elif [ "$KIND" = executor ]; then
     echo "error: executor spawns require --yolo <on|off>; merge authority is unchanged by the task kind" >&2
     exit 1
   }
+  [ "$PRO_SET" -eq 0 ] || fm_executor_pro_profile_valid "$PRO_PROFILE" || {
+    echo "error: --pro must be <harness>:<model>, the matched dispatch rule's pro profile (got '$PRO_PROFILE')" >&2
+    exit 1
+  }
   case "$YOLO" in
   on | off) ;;
   *)
@@ -1051,6 +1077,10 @@ else
   }
   [ "$ACCEPT_DIRECT_PR" -eq 0 ] || {
     echo "error: --accept-direct-pr applies only to --executor spawns; a ship task chooses its delivery with --mode" >&2
+    exit 1
+  }
+  [ "$PRO_SET" -eq 0 ] || {
+    echo "error: --pro applies only to --executor spawns" >&2
     exit 1
   }
   # Delivery contract (AGENTS.md section 7). A ship task's mode and yolo are
@@ -2024,6 +2054,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   YOLO=$(fm_meta_get "$RELAUNCH_META" yolo)
   if [ "$KIND" = executor ]; then
     ISSUE=$(fm_meta_get "$RELAUNCH_META" issue)
+    PRO_PROFILE=$(fm_meta_get "$RELAUNCH_META" executor_pro)
     fm_executor_issue_valid "$ISSUE" || {
       echo "error: executor task $ID records no valid issue=; refusing to relaunch a worker with no issue to close" >&2
       exit 1
@@ -3395,6 +3426,39 @@ if [ "$KIND" = executor ]; then
 elif fm_brief_executor_issue "$BRIEF" >/dev/null; then
   echo "error: $BRIEF is an executor brief (Delivery contract: kind=executor), but this is a $KIND spawn; spawn it with --executor --issue $(fm_brief_executor_issue "$BRIEF") or scaffold a $KIND brief" >&2
   exit 1
+fi
+# The foreman label lifecycle (bin/fm-executor-lib.sh, "the foreman contract")
+# governs a foreman-onboarded project: intake takes only an issue the captain
+# promoted to ready-for-agent, on a repository the captain owns, and an issue
+# escalated with exec:pro launches only on the matched rule's pro profile.
+# A project with no .foreman.local keeps the plain executor lane.
+EXECUTOR_FOREMAN=0
+if [ "$KIND" = executor ] && [ -f "$(fm_executor_foreman_config "$PROJ_ABS")" ]; then
+  EXECUTOR_FOREMAN=1
+fi
+if [ "$EXECUTOR_FOREMAN" -eq 1 ] && [ "$RELAUNCH" -eq 0 ]; then
+  fm_executor_repo_owned "$PROJ_ABS" >/dev/null || {
+    echo "error: executor spawn of $ID refused: the foreman label lifecycle cannot run on this repository" >&2
+    exit 1
+  }
+  EXECUTOR_LABELS=$(fm_executor_issue_labels "$PROJ_ABS" "$ISSUE") || {
+    echo "error: executor spawn of $ID refused: gh could not read issue #$ISSUE's labels" >&2
+    exit 1
+  }
+  fm_executor_labels_have "$EXECUTOR_LABELS" "$FM_EXECUTOR_LABEL_READY" || {
+    echo "error: executor spawn of $ID refused: issue #$ISSUE does not carry '$FM_EXECUTOR_LABEL_READY'; the captain promotes an issue before any executor takes it (foreman's intent gate)" >&2
+    exit 1
+  }
+  if fm_executor_labels_have "$EXECUTOR_LABELS" "$FM_EXECUTOR_LABEL_PRO"; then
+    [ "$PRO_SET" -eq 1 ] || {
+      echo "error: executor spawn of $ID refused: issue #$ISSUE carries '$FM_EXECUTOR_LABEL_PRO'; pass --pro <harness>:<model> from the matched dispatch rule's pro profile and launch on it" >&2
+      exit 1
+    }
+    [ "$HARNESS:${MODEL:-}" = "$PRO_PROFILE" ] || {
+      echo "error: executor spawn of $ID refused: issue #$ISSUE carries '$FM_EXECUTOR_LABEL_PRO', so it launches on its pro profile $PRO_PROFILE, not $HARNESS:${MODEL:-default}; pass --harness ${PRO_PROFILE%%:*} --model ${PRO_PROFILE#*:}" >&2
+      exit 1
+    }
+  fi
 fi
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if fm_brief_task_placeholders_present "$BRIEF"; then
@@ -5395,6 +5459,7 @@ preserve_relaunch_meta() {
   if [ "$KIND" = executor ]; then
     echo "issue=$ISSUE"
     [ -z "$POSTURE_CONSENT" ] || echo "posture_consent=$POSTURE_CONSENT"
+    [ -z "$PRO_PROFILE" ] || echo "executor_pro=$PRO_PROFILE"
     echo "executor_base=$EXECUTOR_BASE"
     echo "executor_launched=$EXECUTOR_LAUNCHED"
   fi
@@ -6029,4 +6094,9 @@ SPAWN_ACCOUNT=
 # Opt-in fleet activity ledger (docs/fleet-ledger.md); off costs one file test.
 [ ! -e "$CONFIG/fleet-ledger" ] || [ "$RELAUNCH" -eq 1 ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" dispatched "$ID" "$KIND" "${PROJ_ABS##*/}" "$HARNESS" "$MODEL" || true
 [ "$KIND" != executor ] || SPAWN_DELIVERY="$SPAWN_DELIVERY issue=$ISSUE"
+# The worker is already running, so a failed claim warns rather than fails: the
+# issue then still reads as unclaimed and the operator relabels it by hand.
+if [ "$EXECUTOR_FOREMAN" -eq 1 ] && ! fm_executor_issue_claim "$PROJ_ABS" "$ISSUE"; then
+  echo "warning: $ID launched, but issue #$ISSUE could not be labelled '$FM_EXECUTOR_LABEL_INPROGRESS'; set it by hand" >&2
+fi
 echo "spawned $ID harness=$HARNESS kind=$KIND$SPAWN_DELIVERY window=$META_WINDOW worktree=$WT$SPAWN_ACCOUNT"

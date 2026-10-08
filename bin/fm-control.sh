@@ -177,7 +177,7 @@ esac
 fm_refuse_if_gate_agent
 
 if [ -z "${FM_HOME+x}" ] || [ -z "${FM_HOME:-}" ]; then
-  echo "error: FM_HOME is not set; fm-control refuses to resolve a task without an explicit firstmate home" >&2
+  echo "error: FM_HOME is not set; fm-control refuses to resolve a task without an explicit firstmate home (for this checkout's own home: export FM_HOME=$FM_ROOT)" >&2
   exit 1
 fi
 [ -d "$FM_HOME" ] || {
@@ -1012,6 +1012,30 @@ relaunch_rollback() {
   return 0
 }
 
+# An executor whose issue the foreman lifecycle escalated with exec:pro
+# relaunches on the pro profile its spawn recorded (--pro, the matched dispatch
+# rule's `pro`) when the caller names no harness or model. Any doubt refuses
+# here, on the pre-stop side, rather than relaunching on the profile that
+# already failed.
+resolve_executor_pro_profile() {
+  local proj issue labels pro
+  proj=$(fm_meta_get "$META" project)
+  issue=$(fm_meta_get "$META" issue)
+  [ -n "$proj" ] && [ -f "$(fm_executor_foreman_config "$proj")" ] || return 0
+  labels=$(fm_executor_issue_labels "$proj" "$issue") \
+    || die "could not read issue #$issue's labels to check for $FM_EXECUTOR_LABEL_PRO; pass --harness and --model explicitly to relaunch $ID"
+  fm_executor_labels_have "$labels" "$FM_EXECUTOR_LABEL_PRO" || return 0
+  pro=$(fm_meta_get "$META" executor_pro)
+  fm_executor_pro_profile_valid "$pro" \
+    || die "issue #$issue carries $FM_EXECUTOR_LABEL_PRO but task $ID records no pro profile; relaunch with the matched dispatch rule's pro profile: --harness <adapter> --model <name>"
+  fm_control_harness_supported "${pro%%:*}" \
+    || die "task $ID's recorded pro harness '${pro%%:*}' is not a verified harness; pass --harness and --model explicitly"
+  TARGET_HARNESS=${pro%%:*}
+  EXEC_PRO_MODEL=${pro#*:}
+  EXEC_PRO_APPLIED=1
+  echo "note: issue #$issue carries $FM_EXECUTOR_LABEL_PRO; relaunching $ID on its recorded pro profile $pro" >&2
+}
+
 resolve_relaunch_profile() {
   PRIOR_HARNESS=$HARNESS
   PRIOR_RECORDED_HARNESS=$RECORDED_HARNESS
@@ -1056,6 +1080,11 @@ resolve_relaunch_profile() {
   else
     TARGET_HARNESS=$PRIOR_HARNESS
   fi
+  EXEC_PRO_APPLIED=0
+  EXEC_PRO_MODEL=
+  if [ "$KIND" = executor ] && [ "$HARNESS_SET" = 0 ] && [ "$MODEL_SET" = 0 ]; then
+    resolve_executor_pro_profile
+  fi
   # The launch owner refuses an adapter that cannot run this task's kind, but it
   # is only reached after the old agent has been stopped. Asking the same
   # capability table here keeps that refusal on the pre-stop side of the
@@ -1067,6 +1096,8 @@ resolve_relaunch_profile() {
   # caller names them too.
   if [ "$MODEL_SET" = 1 ]; then
     TARGET_MODEL=$NEW_MODEL
+  elif [ "$EXEC_PRO_APPLIED" = 1 ]; then
+    TARGET_MODEL=$EXEC_PRO_MODEL
   elif [ "$HARNESS_SET" = 0 ] && [ -n "$CONFIG_HARNESS" ]; then
     TARGET_MODEL=${CONFIG_MODEL:-default}
   elif [ "$TARGET_HARNESS" = "$PRIOR_HARNESS" ]; then

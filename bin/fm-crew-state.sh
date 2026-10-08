@@ -351,6 +351,7 @@ if [ "$KIND" = executor ]; then
     working) emit working executor "running ${EXEC_REST}m" ;;
     stale) emit working executor "running ${EXEC_REST}m past the FM_EXECUTOR_MAX_RUNTIME bound" ;;
     ready) emit "done" executor "PR ${EXEC_REST% *} ${EXEC_REST##* }" ;;
+    stopped-by-operator) emit paused executor "stopped by operator exit before any PR; relaunch or tear down (not a failure of the issue)" ;;
     failed-no-commits) emit failed executor "no commits and no PR (verify likely failed before commit)" ;;
     failed-no-pr) emit failed executor "committed but no PR" ;;
     *) emit unknown executor "unrecognized executor verdict" ;;

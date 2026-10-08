@@ -202,6 +202,23 @@ test_exited_with_no_commits_is_failed_before_commit() {
   pass "an exited executor at its base with no pull request reports the pre-commit failure"
 }
 
+# The #218 live smoke: an operator stop wrote operator-exit, yet the poll said
+# executor-failed, which would send firstmate to re-scope a healthy issue.
+test_operator_exit_reads_stopped_not_failed() {
+  local dir out
+  dir=$(make_case opstop exec-o1)
+  mark_exited "$dir" exec-o1 operator-exit
+  out=$(FM_FAKE_GH_PRS='' FM_FAKE_TMUX_WINDOWS=fm-exec-o1 run_poll "$dir" exec-o1)
+  [ "$out" = "executor-stopped: operator exit before any PR (not a failure of the issue)" ] \
+    || fail "expected the operator-stop line, got: $out"
+  [ "$(fm_executor_outcome_key "$out")" = stopped-by-operator ] || fail "the stop line needs its own outcome key"
+  # A pull request the executor opened before the stop still wins.
+  out=$(FM_FAKE_GH_PRS=$'https://github.com/o/r/pull/45\tfalse\tOPEN' FM_FAKE_TMUX_WINDOWS=fm-exec-o1 run_poll "$dir" exec-o1)
+  [ "$out" = "executor-ready: PR https://github.com/o/r/pull/45 ready" ] \
+    || fail "an open pull request must outrank the operator stop, got: $out"
+  pass "an operator-stopped executor reads stopped, not failed, unless it already opened a PR"
+}
+
 test_gh_failure_is_silent_and_nonzero() {
   local dir out rc
   dir=$(make_case ghfail exec-g1)
@@ -296,6 +313,7 @@ test_exited_with_open_pr_is_ready
 test_exited_with_draft_pr_reports_draft
 test_exited_with_commits_and_no_pr_is_failed
 test_exited_with_no_commits_is_failed_before_commit
+test_operator_exit_reads_stopped_not_failed
 test_gh_failure_is_silent_and_nonzero
 test_empty_pr_list_never_prints_null
 test_missing_endpoint_without_marker_reads_exited

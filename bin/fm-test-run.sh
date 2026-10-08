@@ -398,7 +398,7 @@ family_for_basename() {
     fm-teardown-endpoint-safety.test.sh)
       printf '%s\n' backend-dispatch
       ;;
-    fm-check-unregister.test.sh|fm-executor-poll.test.sh|fm-pipeline-spend.test.sh|fm-pr-check-security.test.sh|\
+    fm-check-unregister.test.sh|fm-executor-poll.test.sh|fm-executor-bounce.test.sh|fm-pipeline-spend.test.sh|fm-pr-check-security.test.sh|\
     fm-pr-merge.test.sh|fm-pr-reviewers.test.sh|fm-pr-state.test.sh|\
     fm-review-diff.test.sh|fm-teardown.test.sh|fm-x-mode.test.sh)
       printf '%s\n' pr-forge
@@ -747,6 +747,7 @@ tests/fm-dispatch-resolve.test.sh 10051
 tests/fm-documentation-audiences.test.sh 1301
 tests/fm-dod-lib.test.sh 2035
 tests/fm-executor-headless-flags-live-e2e.test.sh 1500
+tests/fm-executor-bounce.test.sh 400
 tests/fm-executor-poll.test.sh 1700
 tests/fm-extension-binding.test.sh 11105
 tests/fm-fleet-ledger.test.sh 19980
@@ -1613,7 +1614,7 @@ families_for_changed_path() {
     bin/fm-x-*|bin/fm-check*|bin/fm-pipeline-spend.sh)
       printf '%s\n' pr-forge
       ;;
-    bin/fm-executor-poll.sh|bin/fm-executor-lib.sh)
+    bin/fm-executor-poll.sh|bin/fm-executor-lib.sh|bin/fm-executor-bounce.sh)
       # The executor kind's shared classifier and static poll are read by the
       # spawn (backend-dispatch), the watcher (watcher-wake-lock), crew-state
       # and the brief (pure-contract-unit), teardown and the poll suite

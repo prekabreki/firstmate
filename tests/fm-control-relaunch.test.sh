@@ -2649,6 +2649,54 @@ test_executor_relaunch_without_consent_refuses() {
   pass "fm-control relaunch: an executor without recorded captain consent is refused on a no-mistakes project"
 }
 
+
+# A foreman-onboarded executor's issue escalated with exec:pro relaunches on the
+# pro profile its spawn recorded, with no flags, and the relaunch claims the
+# issue in-progress; without a recorded pro profile it refuses before stopping.
+make_foreman_gh_stub() {  # <case-dir> <labels>
+  printf '%s\n' "$2" > "$1/fake/labels"
+  cat > "$1/fakebin/gh" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> '$1/fake/gh.log'
+case " \$* " in
+  *" api user "*) echo captain ;;
+  *" repo view "*) echo captain/proj ;;
+  *" issue view "*"--json labels"*) cat '$1/fake/labels' ;;
+  *" issue edit "*) exit 0 ;;
+  *" pr list "*) exit 0 ;;
+  *) exit 1 ;;
+esac
+SH
+  chmod +x "$1/fakebin/gh"
+}
+
+test_executor_relaunch_follows_exec_pro() {
+  local dir out rc
+  dir=$(new_case executor-pro ex6)
+  add_executor_task "$dir" ex6
+  printf 'FOREMAN_VERIFY_CMD="make ci"\n' > "$dir/proj/.foreman.local"
+  echo "executor_pro=claude:opus" >> "$dir/home/state/ex6.meta"
+  make_foreman_gh_stub "$dir" $'bounced\nexec:pro'
+  printf 'claude' > "$dir/fake/becomes"
+  out=$(run_control "$dir" ex6 relaunch); rc=$?
+  expect_code 0 "$rc" "an exec:pro relaunch with a recorded pro profile should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunching ex6 on its recorded pro profile claude:opus" "the switch is announced"
+  assert_contains "$out" "relaunched ex6 harness=claude from=opencode model=opus" "the outcome names the pro profile"
+  [ "$(meta_field "$dir" ex6 executor_pro)" = claude:opus ] || fail "the pro profile must survive the relaunch"
+  grep -qx 'issue edit 5 --add-label in-progress --remove-label ready-for-agent,needs-replan' "$dir/fake/gh.log" \
+    || fail "the relaunch must claim the issue in-progress: $(cat "$dir/fake/gh.log")"
+
+  dir=$(new_case executor-pro-missing ex7)
+  add_executor_task "$dir" ex7
+  printf 'FOREMAN_VERIFY_CMD="make ci"\n' > "$dir/proj/.foreman.local"
+  make_foreman_gh_stub "$dir" 'exec:pro'
+  out=$(run_control "$dir" ex7 relaunch); rc=$?
+  expect_code 1 "$rc" "exec:pro with no recorded pro profile must refuse"
+  assert_contains "$out" "records no pro profile" "the refusal says what is missing"
+  [ "$(meta_field "$dir" ex7 harness)" = opencode ] || fail "a refused relaunch changes nothing"
+  pass "fm-control relaunch: exec:pro resolves to the recorded pro profile, and refuses without one"
+}
+
 # A relaunched executor is a NEW incarnation: the poll must describe its work,
 # not the commits the bounced first incarnation left on the shared branch.
 test_executor_relaunch_counts_only_the_new_incarnations_commits() {
@@ -2766,3 +2814,4 @@ test_executor_relaunch_escalates_profile_and_appends_the_note
 test_executor_relaunch_without_consent_refuses
 test_executor_relaunch_counts_only_the_new_incarnations_commits
 test_executor_promotion_is_refused
+test_executor_relaunch_follows_exec_pro

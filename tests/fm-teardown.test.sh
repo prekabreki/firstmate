@@ -4680,6 +4680,49 @@ test_executor_pushed_unmerged_branch_allows_and_cleans_artifacts() {
   pass "an executor whose branch is pushed but unmerged is torn down and every executor artifact is removed"
 }
 
+# The #218 live smoke: an executor stopped by the operator before any commit,
+# torn down with --force, left its empty fm/<id> branch in the pooled clone.
+test_executor_operator_stopped_force_teardown_drops_the_branch() {
+  local case_dir rc base
+  case_dir=$(make_case exec-operator-stop)
+  write_meta "$case_dir" direct-PR executor
+  base=$(git -C "$case_dir/wt" rev-parse HEAD)
+  printf 'issue=7\nexecutor_base=%s\nexecutor_launched=1000\n' "$base" >> "$case_dir/state/task-x1.meta"
+  printf 'operator-exit\n' > "$case_dir/state/task-x1.executor-exit"
+
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "exec-operator-stop: forced teardown should succeed: $(cat "$case_dir/stderr")"
+  ! git -C "$case_dir/project" show-ref --verify --quiet refs/heads/fm/task-x1 \
+    || fail "exec-operator-stop: teardown kept the empty fm/task-x1 branch: $(cat "$case_dir/stderr")"
+  pass "a forced teardown of an operator-stopped executor drops its empty task branch"
+}
+
+test_teardown_warns_when_the_task_branch_cannot_be_deleted() {
+  local case_dir rc base gitdir
+  case_dir=$(make_case exec-branch-locked)
+  write_meta "$case_dir" direct-PR executor
+  base=$(git -C "$case_dir/wt" rev-parse HEAD)
+  printf 'issue=7\nexecutor_base=%s\nexecutor_launched=1000\n' "$base" >> "$case_dir/state/task-x1.meta"
+  printf 'operator-exit\n' > "$case_dir/state/task-x1.executor-exit"
+  gitdir=$(git -C "$case_dir/project" rev-parse --absolute-git-dir)
+  : > "$gitdir/refs/heads/fm/task-x1.lock"
+
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "exec-branch-locked: a branch that cannot be deleted must not fail the teardown"
+  grep -q 'warning: could not delete local task branch fm/task-x1' "$case_dir/stderr" \
+    || fail "exec-branch-locked: the surviving branch was not reported: $(cat "$case_dir/stderr")"
+  grep -q 'lock' "$case_dir/stderr" || fail "exec-branch-locked: the warning must carry git's own reason"
+  pass "teardown names a task branch it could not delete, with git's reason"
+}
+
 test_executor_unpushed_work_refuses() {
   local case_dir rc
   case_dir=$(make_case exec-unpushed)
@@ -4805,3 +4848,5 @@ test_process_exit_during_identity_lookup_does_not_refuse
 test_run_abort_precedes_process_reap_precedes_worktree_removal
 test_executor_pushed_unmerged_branch_allows_and_cleans_artifacts
 test_executor_unpushed_work_refuses
+test_executor_operator_stopped_force_teardown_drops_the_branch
+test_teardown_warns_when_the_task_branch_cannot_be_deleted

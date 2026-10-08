@@ -2,6 +2,7 @@
 # Static watcher program for a kind=executor task (the executor-dispatch skill).
 # It prints exactly one line when firstmate should wake and nothing otherwise:
 #   executor-ready: PR <url> <draft|ready>       process exited, pull request on fm/<id>
+#   executor-stopped: operator exit before any PR (not a failure of the issue)
 #   executor-failed: no commits and no PR (verify likely failed before commit)
 #   executor-failed: committed but no PR
 #   executor-stale: running <N>m past the bound   process alive past FM_EXECUTOR_MAX_RUNTIME

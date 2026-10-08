@@ -2462,6 +2462,17 @@ require_owned_task_worktree_slot() {
   return 1
 }
 
+# Best-effort removal of the local task branch once the worktree is detached.
+# Never fatal, but never silent either: a branch that survives piles up in the
+# shared clone, so the warning carries git's own reason (#222: an executor's
+# empty fm/<id> outlived a forced teardown with nothing saying why).
+teardown_drop_task_branch() {  # <worktree> <branch>
+  local wt=$1 branch=$2 err
+  err=$(git -C "$wt" branch -D "$branch" 2>&1 >/dev/null) && return 0
+  echo "warning: could not delete local task branch $branch in $wt (${err:-git gave no reason}); delete it by hand once nothing needs it" >&2
+  return 0
+}
+
 teardown_owns_worktree() {
   [ "$TEARDOWN_SLOT_REASSIGNED" != 1 ]
 }
@@ -3588,7 +3599,7 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
     branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
     if [ "$branch" != "HEAD" ]; then
       if git -C "$WT" checkout --detach -q 2>/dev/null; then
-        git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
+        teardown_drop_task_branch "$WT" "$branch"
       fi
     fi
     rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
@@ -3606,7 +3617,7 @@ elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
   branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
   if [ "$branch" != "HEAD" ]; then
     if git -C "$WT" checkout --detach -q 2>/dev/null; then
-      git -C "$WT" branch -D "$branch" >/dev/null 2>&1 || true
+      teardown_drop_task_branch "$WT" "$branch"
     fi
   fi
   # Remove our hook file so a reused pool worktree cannot fire signals for a dead task.
