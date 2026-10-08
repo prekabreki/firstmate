@@ -2473,6 +2473,23 @@ teardown_drop_task_branch() {  # <worktree> <branch>
   return 0
 }
 
+# Detach the worktree and drop its task branch. The branch is read from HEAD,
+# or, when HEAD is already detached, from TEARDOWN_TASK_BRANCH, which was read
+# before the process reap: under herdr the worker pane's shell is a child of
+# `treehouse get`, which runs `git checkout --detach` in the slot as soon as the
+# reap kills that shell, so by now HEAD no longer names the branch (#224).
+teardown_release_task_branch() {  # <worktree>
+  local wt=$1 branch
+  branch=$(git -C "$wt" symbolic-ref --quiet --short HEAD 2>/dev/null) || branch=
+  if [ -n "$branch" ]; then
+    git -C "$wt" checkout --detach -q 2>/dev/null || return 0
+  else
+    branch=$TEARDOWN_TASK_BRANCH
+    [ -n "$branch" ] || return 0
+  fi
+  teardown_drop_task_branch "$wt" "$branch"
+}
+
 teardown_owns_worktree() {
   [ "$TEARDOWN_SLOT_REASSIGNED" != 1 ]
 }
@@ -3573,6 +3590,10 @@ fi
 # kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
 # dedicated process-event and firstmate-home removal machinery further below,
 # not by task-worktree cleanup.
+TEARDOWN_TASK_BRANCH=
+if [ "$KIND" != secondmate ] && teardown_owns_worktree && [ -d "$WT" ]; then
+  TEARDOWN_TASK_BRANCH=$(git -C "$WT" symbolic-ref --quiet --short HEAD 2>/dev/null) || TEARDOWN_TASK_BRANCH=
+fi
 if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
   conclude_task_no_mistakes_run "$WT"
   reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
@@ -3596,12 +3617,7 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
     ORCA_PATH_MATCH_VERIFIED=1
   fi
   if [ -d "$WT" ]; then
-    branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-    if [ "$branch" != "HEAD" ]; then
-      if git -C "$WT" checkout --detach -q 2>/dev/null; then
-        teardown_drop_task_branch "$WT" "$branch"
-      fi
-    fi
+    teardown_release_task_branch "$WT"
     rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
       "$WT/.opencode/plugins/fm-busy-state.js" \
       "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend" "$WT/.fm-pr-body.md"
@@ -3614,12 +3630,7 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
 elif [ "$KIND" != secondmate ] && ! teardown_owns_worktree; then
   :
 elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
-  branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
-  if [ "$branch" != "HEAD" ]; then
-    if git -C "$WT" checkout --detach -q 2>/dev/null; then
-      teardown_drop_task_branch "$WT" "$branch"
-    fi
-  fi
+  teardown_release_task_branch "$WT"
   # Remove our hook file so a reused pool worktree cannot fire signals for a dead task.
   rm -f "$WT/.claude/settings.local.json" "$WT/.opencode/plugins/fm-turn-end.js" \
     "$WT/.fm-grok-turnend" "$WT/.fm-kimi-turnend" "$WT/.fm-pr-body.md"

@@ -4723,6 +4723,38 @@ test_teardown_warns_when_the_task_branch_cannot_be_deleted() {
   pass "teardown names a task branch it could not delete, with git's reason"
 }
 
+test_teardown_drops_the_branch_a_dying_pane_parent_detached() {
+  local case_dir rc parent_pid
+  case_dir=$(make_case pane-parent-detach)
+  write_meta "$case_dir" local-only ship
+  git -C "$case_dir/wt" symbolic-ref --quiet HEAD >/dev/null \
+    || fail "pane-parent-detach: setup worktree is not on its task branch"
+
+  # Under herdr the worker pane's shell is a child of `treehouse get`, whose cwd
+  # is outside the slot. When teardown's reap kills that shell, `treehouse get`
+  # runs `git checkout --detach` in the slot before the branch-drop step reads
+  # HEAD (#224, seen live with an opencode crewmate). This worker detaches the
+  # slot from its own TERM trap, so the slot is detached by the time the reap
+  # sees the worker gone, whatever the machine's load.
+  ( cd "$case_dir/wt" && trap 'git checkout --detach -q; exit 0' TERM && { sleep 300 & wait; } ) &
+  parent_pid=$!
+  disown
+  sleep 0.3
+
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  kill -KILL "$parent_pid" 2>/dev/null || true
+
+  expect_code 0 "$rc" "pane-parent-detach: forced teardown should succeed: $(cat "$case_dir/stderr")"
+  assert_grep "reaping leaked worktree process" "$case_dir/stderr" \
+    "pane-parent-detach: the pane shell was not reaped, so the trigger never fired"
+  ! git -C "$case_dir/project" show-ref --verify --quiet refs/heads/fm/task-x1 \
+    || fail "pane-parent-detach: teardown kept fm/task-x1 after the pane's parent detached the slot: $(cat "$case_dir/stderr")"
+  pass "teardown drops the task branch even when the dying pane's parent already detached the slot"
+}
+
 test_executor_unpushed_work_refuses() {
   local case_dir rc
   case_dir=$(make_case exec-unpushed)
@@ -4850,3 +4882,4 @@ test_executor_pushed_unmerged_branch_allows_and_cleans_artifacts
 test_executor_unpushed_work_refuses
 test_executor_operator_stopped_force_teardown_drops_the_branch
 test_teardown_warns_when_the_task_branch_cannot_be_deleted
+test_teardown_drops_the_branch_a_dying_pane_parent_detached
