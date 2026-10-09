@@ -3858,8 +3858,22 @@ ORPHAN_DESCENDANT=$(cat "$TMP_ROOT/orphan-dead.descendant")
 
 # The reproduction condition itself: the listener is already an orphan in the
 # kernel's sense before anything is asserted about reaping it.
+#
+# The kernel hands an orphan to the nearest child subreaper above it, and only
+# to init when there is none, so the new parent depends on the session running
+# this test: under a `systemd --user` manager - which every tmux or Herdr server
+# started from a desktop login sits under - it is that manager, not pid 1.
+# What makes the listener an orphan is that no process of this test's own tree
+# is its parent any more, so that is what is asserted.
 orphan_ppid=$(ps -o ppid= -p "$ORPHAN_PID" 2>/dev/null | tr -d '[:space:]')
-[ "$orphan_ppid" = 1 ] \
+[ -n "$orphan_ppid" ] \
+  || fail "the listener under test had no readable parent"
+orphan_ancestor=$orphan_ppid
+while [ "$orphan_ancestor" -gt 1 ] && [ "$orphan_ancestor" != "$$" ]; do
+  orphan_ancestor=$(ps -o ppid= -p "$orphan_ancestor" 2>/dev/null | tr -d '[:space:]')
+  [ -n "$orphan_ancestor" ] || break
+done
+[ "$orphan_ancestor" != "$$" ] \
   || fail "the listener under test was not reparented away from its session (ppid $orphan_ppid)"
 kill -0 -"$ORPHAN_PID" 2>/dev/null \
   || fail "the listener's process group was not running"
