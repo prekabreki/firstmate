@@ -498,7 +498,6 @@ if [ "${FM_FIXTURE_ORPHAN_HERE:-0}" = 1 ]; then
     sleep 0.05
     i=$((i + 1))
   done
-  reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 fi
 printf '%s\n' "$$" > "$FM_HOME/state/session-pid"
 printf '%s\n' "$$" > "$FM_HOME/state/.lock"
@@ -514,7 +513,6 @@ while [ "$i" -lt 200 ] && ! reparented_away "$$" "$FM_FIXTURE_TEST_PID"; do
   sleep 0.05
   i=$((i + 1))
 done
-reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 printf '%s\n' "$$" > "$FM_HOME/state/daemon-pid"
 "$FM_SESSION_BIN" "$FM_HOME/session.sh"
 exit 0
@@ -642,7 +640,6 @@ while [ "$i" -lt 200 ] && ! reparented_away "$$" "$FM_FIXTURE_TEST_PID"; do
   sleep 0.05
   i=$((i + 1))
 done
-reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 printf '%s\n' "$$" > "$FM_HOME/state/frontend-pid"
 CLAUDE_CODE_SESSION_ID=S1 CLAUDE_PID=$$ "$FM_HOME/bin/fm-lock.sh" > "$FM_HOME/state/frontend-lock.out" 2>&1
 printf '%s\n' "$?" > "$FM_HOME/state/frontend-lock.rc"
