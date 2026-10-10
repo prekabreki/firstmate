@@ -1,0 +1,42 @@
+## primary config/crew-autocompact=450000 -> fm-config-push.sh
+config-push: /tmp/fm-lab.5LZ9uq -> live secondmate homes
+secondmate sm1 (/tmp/fm-lab.5LZ9uq-sm1):
+  crew-dispatch.json: unchanged
+  dispatch-never-send: unchanged
+  crew-harness: pushed
+  backlog-backend: unchanged
+  backend: unchanged
+  herdr-presentation-spaces: unchanged
+  startup-memory-budget: unchanged
+  trace-context: unchanged - session-scoped
+  launch-env-allowlist: unchanged
+  claude-permission-mode: unchanged
+  crew-autocompact: pushed
+  lavish-axi-host: unchanged
+  keep-ai-trailers: unchanged
+  supervision-host-off: unchanged
+  data/captain-shared.md: unchanged
+CONFIG_REREAD: secondmate sm1: send failed: error: refusing fleet lifecycle from inside a no-mistakes gate worktree (/home/prekabreki/.no-mistakes/repos/4046fed7c36e.git)
+exit=1
+secondmate config/crew-autocompact: 450000
+## primary config/crew-autocompact removed -> fm-config-push.sh
+config-push: /tmp/fm-lab.5LZ9uq -> live secondmate homes
+secondmate sm1 (/tmp/fm-lab.5LZ9uq-sm1):
+  crew-dispatch.json: unchanged
+  dispatch-never-send: unchanged
+  crew-harness: unchanged
+  backlog-backend: unchanged
+  backend: unchanged
+  herdr-presentation-spaces: unchanged
+  startup-memory-budget: unchanged
+  trace-context: unchanged - session-scoped
+  launch-env-allowlist: unchanged
+  claude-permission-mode: unchanged
+  crew-autocompact: pushed - mirrored primary absence
+  lavish-axi-host: unchanged
+  keep-ai-trailers: unchanged
+  supervision-host-off: unchanged
+  data/captain-shared.md: unchanged
+CONFIG_REREAD: secondmate sm1: send failed: error: refusing fleet lifecycle from inside a no-mistakes gate worktree (/home/prekabreki/.no-mistakes/repos/4046fed7c36e.git)
+exit=1
+secondmate file present: no

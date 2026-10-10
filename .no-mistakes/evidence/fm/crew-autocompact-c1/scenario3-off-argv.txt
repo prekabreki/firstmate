@@ -1,0 +1,12 @@
+# relaunched worker argv with config/crew-autocompact=off
+claude --dangerously-skip-permissions --add-dir /tmp/fm-lab.5LZ9uq/state/operational-inbox --add-dir /tmp/fm-lab.5LZ9uq/state/ac-scout1.inbox --add-dir /tmp/fm-lab.5LZ9uq/data/ac-scout1 --add-dir /home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4JJ1XWPXXPT2M2QTF5RW83R/.agents/skills --setting
+
+contains --autocompact: 0
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 2.2k tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 1.3k tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP server instructions: 3.6k tokens (0.4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Memory files: 2.6k tokens (0.3%)
+                                               ⛁ Skills: 10k tokens (1.0%)
+                                               ⛁ Messages: 77.8k tokens (7.8%)
+                                               ⛝ Autocompact buffer: 33k tokens (3.3%)
+     Auto-compact window: 1m tokens

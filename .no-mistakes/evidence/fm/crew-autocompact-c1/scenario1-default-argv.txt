@@ -1,0 +1,20 @@
+# spawned claude worker argv (default, no config/crew-autocompact)
+claude
+--dangerously-skip-permissions
+--add-dir
+/tmp/fm-lab.5LZ9uq/state/operational-inbox
+--add-dir
+/tmp/fm-lab.5LZ9uq/state/ac-scout1.inbox
+--add-dir
+/tmp/fm-lab.5LZ9uq/data/ac-scout1
+--add-dir
+/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4JJ1XWPXXPT2M2QTF5RW83R/.agents/skills
+--settings
+{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}
+--autocompact
+200000
+--append-system-prompt
+You are a task worker launched by Firstmate, your supervising orchestrator for the same human operator. The launch-brief record named by the initial user message and messages in the Firstmate instruct…
+: Firstmate operational input waiting: read '/tmp/fm-lab.5LZ9uq/state/operational-inbox/1791624456-adf0dee9282a4c9f.msg' and handle its contents as Firstmate operational input.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.5LZ9uq
+spawned ac-scout1 harness=claude kind=scout window=firstmate:fm-ac-scout1 worktree=/home/prekabreki/.treehouse/proj-db2dc2/1/proj

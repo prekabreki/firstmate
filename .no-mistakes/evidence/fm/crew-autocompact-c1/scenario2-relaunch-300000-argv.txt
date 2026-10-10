@@ -1,0 +1,24 @@
+# relaunched worker argv with config/crew-autocompact=300000
+--dangerously-skip-permissions
+--add-dir
+--
+--autocompact
+300000
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.5LZ9uq
+spawned ac-scout1 harness=claude kind=scout window=firstmate:fm-ac-scout1 worktree=/home/prekabreki/.treehouse/proj-db2dc2/1/proj
+7:❯ /context
+11:     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   97.7k/300k tokens (33%)
+14:     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 2.2k tokens (0.7%)
+15:     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 1.3k tokens (0.4%)
+16:     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP server instructions: 3.6k tokens (1.2%)
+17:     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛝   ⛁ Custom agents: 144 tokens (0.0%)
+18:     ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝ ⛝   ⛁ Memory files: 2.6k tokens (0.9%)
+19:                           ⛁ Skills: 10k tokens (3.3%)
+20:                           ⛁ Messages: 77.9k tokens (26.0%)
+22:                           ⛝ Autocompact buffer: 33k tokens (11.0%)
+23:     Auto-compact window: 300k tokens
+25:     └ 400 tools · 0 tokens
+27:     └ 2 agents · 144 tokens
+29:     └ 1 file · 2.6k tokens
+31:     └ 131 skills · 10k tokens
+32:     /context all to expand

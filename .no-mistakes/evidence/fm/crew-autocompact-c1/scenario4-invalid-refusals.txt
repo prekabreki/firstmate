@@ -1,0 +1,36 @@
+## fresh scout spawn with config/crew-autocompact='50000'
+error: config/crew-autocompact holds '50000'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='99999'
+error: config/crew-autocompact holds '99999'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='1000001'
+error: config/crew-autocompact holds '1000001'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='200k'
+error: config/crew-autocompact holds '200k'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='auto'
+error: config/crew-autocompact holds 'auto'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='0200000'
+error: config/crew-autocompact holds '0200000'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## fresh scout spawn with config/crew-autocompact='abc'
+error: config/crew-autocompact holds 'abc'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+meta exists: no; windows before: sleep fm-ac-scout1  after: sleep fm-ac-scout1 
+## relaunch of stopped ac-scout1 with config/crew-autocompact='50000'
+error: config/crew-autocompact holds '50000'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)
+exit=1
+claude workers in lab: 0
+## fresh scout spawn with config/crew-autocompact as a directory
+error: config/crew-autocompact must be a readable regular file holding a token count from 100000 to 1000000, or off
+exit=1
+meta exists: no
