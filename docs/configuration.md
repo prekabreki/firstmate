@@ -9,7 +9,7 @@ Start with the directory layout, then use the setting reference for the behavior
 | --- | --- |
 | Firstmate's code, private files, or project location | [FM_HOME](#fm_home) and [operational home layout](#operational-home-layout-and-state) |
 | Task windows and worker tools | [Runtime backend](#runtime-backend-configbackend--fm_backend) and [harness support](#harness-support) |
-| Worker permissions, accounts, or environment | [Claude permission mode](#claude-permission-mode-configclaude-permission-mode), [worker account pin](#worker-account-pin-configclaude-account-configpi-account), [worker tool exclusions](#worker-tool-exclusions-configcrew-exclude-tools), and [worker launch environment](#worker-launch-environment-configlaunch-env-allowlist) |
+| Worker permissions, accounts, or environment | [Claude permission mode](#claude-permission-mode-configclaude-permission-mode), [Claude auto-compact window](#claude-auto-compact-window-configcrew-autocompact), [worker account pin](#worker-account-pin-configclaude-account-configpi-account), [worker tool exclusions](#worker-tool-exclusions-configcrew-exclude-tools), and [worker launch environment](#worker-launch-environment-configlaunch-env-allowlist) |
 | Backlog, preferences, and memory | [Backlog backend](#backlog-backend-taskstoml--configbacklog-backend), [captain preferences](#captain-preferences-datacaptainmd--datacaptain-sharedmd), and [startup memory budget](#startup-memory-budget-configstartup-memory-budget) |
 | Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), and [Calm preference](#calm-preference-configcalm) |
 | Persistent secondmates | [Secondmate routes](#secondmate-routes-datasecondmatesmd) |
@@ -876,6 +876,35 @@ The diagnostic names the accepted values; Firstmate never falls back to a permis
 The file is a captain-wide safety preference, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract; a secondmate's own Claude crewmates then launch on the same posture.
 
 The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) records the permission-mode observations and the distinct startup dialogs.
+
+## Claude auto-compact window (config/crew-autocompact)
+
+The optional local, gitignored `config/crew-autocompact` sets the context size at which every interactive Claude worker launch compacts automatically: crewmates, scouts, Claude secondmates, and control-plane relaunches.
+`bin/fm-spawn.sh` passes it as Claude Code's `--autocompact <tokens>` launch flag.
+Without a bound, a worker on a 1M-context model can grow toward the full window and re-send all of it on every turn; compaction keeps task continuity, so workers compact early instead.
+
+### Accepted values and refusals
+
+The token is the file's whitespace-trimmed content.
+
+| Token | Launch flag |
+| --- | --- |
+| absent file | `--autocompact 200000` |
+| a whole number from `100000` to `1000000` | `--autocompact <number>` |
+| `off` | no flag, so Claude Code's own auto-compact default applies |
+
+The range is the one the Claude CLI accepts; Firstmate does not accept the CLI's `auto` or `k`-suffixed spellings.
+An executor's one-shot `claude -p` launch never carries the flag.
+Any other value or an unreadable file refuses every spawn from that home, whichever harness it would launch, before any endpoint, worktree, or task record exists, and the diagnostic names the accepted values.
+
+This window is separate from the compact adviser, which every spawned agent runs with disabled through `COMPACT_ADVISER_DISABLE=1` (see [Worker launch environment](#worker-launch-environment-configlaunch-env-allowlist)); this setting never changes that.
+
+### When changes apply and inheritance
+
+`bin/fm-spawn.sh` reads the file on every spawn and relaunch, so a change takes effect at the next launch; a running worker keeps the window it launched with.
+The file is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own Claude crewmates compact at the same window.
+
+[Runtime backend verification](verification/runtime-backends.md#claude-auto-compact-window) records the CLI evidence and names the live guard that refreshes it.
 
 ## Worker tool exclusions (config/crew-exclude-tools)
 

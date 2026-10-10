@@ -2052,13 +2052,13 @@ claude_worker_add_dirs() {  # <home> <id>
   printf '%s ' "--add-dir '$state_real/operational-inbox' --add-dir '$state_real/$2.inbox' --add-dir '$data_real/$2' --add-dir '$root_real/.agents/skills'"
 }
 
-claude_expected_launch() {  # <launch> <home> <id> <permission-flag>
-  local doorbell quoted
+claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [<autocompact-segment>]
+  local doorbell quoted autocompact=${5---autocompact 200000 }
   doorbell=$(claude_launch_brief_arg "$1")
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $autocompact$CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
@@ -2185,6 +2185,95 @@ test_non_claude_harness_ignores_claude_permission_mode() {
   pass "config/claude-permission-mode changes claude launches only"
 }
 
+# config/crew-autocompact (bin/fm-spawn.sh header): absent launches with the
+# tracked default window, a token count sets it, `off` omits the flag, and any
+# other value refuses before endpoint or metadata.
+test_crew_autocompact_value_sets_the_window() {
+  local rec id out status launch expected
+  id="autocompact-value-z24"
+  rec=$(make_spawn_case autocompact-value claude "$id")
+  read_case_record "$rec"
+  printf '  350000\n' > "$HOME_DIR/config/crew-autocompact"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn with crew-autocompact=350000 should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  expected=$(claude_expected_launch "$launch" "$HOME_DIR" "$id" --dangerously-skip-permissions '--autocompact 350000 ')
+  [ "$launch" = "$expected" ] || fail "crew-autocompact=350000 changed more than the window"$'\n'"expected: $expected"$'\n'"actual:   $launch"
+  pass "config/crew-autocompact sets the --autocompact window of a claude ship launch"
+}
+
+test_crew_autocompact_off_omits_the_flag() {
+  local rec id out status launch expected
+  id="autocompact-off-z25"
+  rec=$(make_spawn_case autocompact-off claude "$id")
+  read_case_record "$rec"
+  printf 'off\n' > "$HOME_DIR/config/crew-autocompact"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn with crew-autocompact=off should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  expected=$(claude_expected_launch "$launch" "$HOME_DIR" "$id" --dangerously-skip-permissions '')
+  [ "$launch" = "$expected" ] || fail "crew-autocompact=off did not just omit the flag"$'\n'"expected: $expected"$'\n'"actual:   $launch"
+  assert_not_contains "$launch" "--autocompact" "off must launch with no --autocompact flag"
+  pass "config/crew-autocompact=off omits --autocompact"
+}
+
+test_crew_autocompact_reaches_scout_launch() {
+  local rec id out status launch
+  id="autocompact-scout-z26"
+  rec=$(make_spawn_case autocompact-scout claude "$id")
+  read_case_record "$rec"
+  printf '1000000\n' > "$HOME_DIR/config/crew-autocompact"
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --scout)
+  status=$?
+  expect_code 0 "$status" "claude scout spawn with crew-autocompact=1000000 should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" " --autocompact 1000000 " "scout launch did not carry the configured window"
+  pass "config/crew-autocompact reaches scout launches too"
+}
+
+test_crew_autocompact_invalid_refuses_before_endpoint_or_metadata() {
+  local rec id out status value n=0
+  for value in 99999 1000001 200k auto 0200000; do
+    n=$((n + 1))
+    id="autocompact-invalid-$n"
+    rec=$(make_spawn_case "autocompact-invalid-$n" claude "$id")
+    read_case_record "$rec"
+    printf '%s\n' "$value" > "$HOME_DIR/config/crew-autocompact"
+
+    out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+    status=$?
+    expect_code 1 "$status" "crew-autocompact=$value must refuse the spawn"
+    assert_contains "$out" "config/crew-autocompact holds '$value'" "refusal must name the file and the offending token"
+    assert_contains "$out" "100000 to 1000000" "refusal must state the accepted range"
+    assert_contains "$out" "off" "refusal must list off as an accepted value"
+    [ ! -s "$LAUNCH_LOG" ] || fail "crew-autocompact=$value must launch nothing (got: $(cat "$LAUNCH_LOG"))"
+    assert_absent "$HOME_DIR/state/$id.meta" "refusal must happen before meta is written"
+  done
+  pass "an out-of-range or malformed config/crew-autocompact refuses before any endpoint or metadata"
+}
+
+test_non_claude_harness_ignores_crew_autocompact() {
+  local rec id out status launch
+  id="autocompact-codex-z27"
+  rec=$(make_spawn_case autocompact-codex codex "$id")
+  read_case_record "$rec"
+  printf '300000\n' > "$HOME_DIR/config/crew-autocompact"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --harness codex)
+  status=$?
+  expect_code 0 "$status" "codex spawn under crew-autocompact=300000 should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "codex " "codex launch did not run codex"
+  assert_not_contains "$launch" "--autocompact" "the claude auto-compact flag must not leak into a codex launch"
+  pass "config/crew-autocompact changes claude launches only"
+}
+
+
 test_worker_launch_delivers_role_scope
 test_no_profile_keeps_claude_profile_defaults
 test_claude_launch_brief_publishes_record_doorbell
@@ -2247,6 +2336,11 @@ test_claude_permission_mode_auto_reaches_scout_launch
 test_claude_worker_launch_covers_task_channel_dirs
 test_claude_permission_mode_invalid_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_claude_permission_mode
+test_crew_autocompact_value_sets_the_window
+test_crew_autocompact_off_omits_the_flag
+test_crew_autocompact_reaches_scout_launch
+test_crew_autocompact_invalid_refuses_before_endpoint_or_metadata
+test_non_claude_harness_ignores_crew_autocompact
 test_non_claude_harness_ignores_config_dir
 test_claude_task_launch_carries_control_channel_authority
 test_claude_secondmate_launch_omits_task_control_channel_authority
