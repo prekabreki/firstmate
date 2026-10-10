@@ -61,17 +61,19 @@ wait_child() { # <pid> <seconds>
   return 1
 }
 
-# True when <pid>'s parent is a reaper for orphaned processes: init itself, or
-# a subreaper systemd registers one hop below init (PR_SET_CHILD_SUBREAPER,
-# e.g. `systemd --user`) - a live host's per-user manager adopts orphans there
-# instead of letting them reach real init, and that is just as orphaned for
-# this fixture's purpose.
+# The kernel hands an orphan to the nearest child subreaper above it, and only
+# to init when there is none. Assert that its parent is outside this test's own
+# process tree, without assuming where the session's subreaper sits.
 is_orphaned() { # <pid>
-  local parent
+  local parent ancestor
   parent=$(ppid_of "$1")
   case "$parent" in ''|*[!0-9]*) return 1 ;; esac
-  [ "$parent" = 1 ] && return 0
-  [ "$(ppid_of "$parent")" = 1 ]
+  ancestor=$parent
+  while [ "$ancestor" -gt 1 ] && [ "$ancestor" != "$$" ]; do
+    ancestor=$(ppid_of "$ancestor")
+    [ -n "$ancestor" ] || break
+  done
+  [ "$ancestor" != "$$" ]
 }
 
 # Wait up to <seconds> for <pid> to be reparented to an orphan reaper (see
@@ -149,7 +151,7 @@ SERVE=$(pgrep -P "$WORKER" | head -n 1)
 pass "the Linux start path puts the whole worker tree in its own process group"
 
 wait_orphaned "$WORKER" 5 ||
-  fail "the fixture worker is not orphaned to init, so this case does not reproduce the leak"
+  fail "the fixture worker was not reparented away from this test, so this case does not reproduce the leak"
 
 # The exact teardown shape that leaked in production: a fixture cleanup removes
 # the worker's state root and then stops only the single recorded worker pid -

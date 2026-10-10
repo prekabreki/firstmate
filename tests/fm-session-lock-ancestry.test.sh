@@ -429,6 +429,22 @@ test_anchor_pid_is_the_model_loop_process_only_for_a_trusted_id() {
 
 # --- end-to-end layer: the real Stop auto-arm in real process trees ----------
 
+# The kernel hands an orphan to the nearest child subreaper above it, and only
+# to init when there is none. Walk the new parent's ancestry to prove it no
+# longer belongs to the tree rooted at <ancestor>, regardless of the session's
+# subreaper. Fixture scripts get this same helper in their own home.
+reparented_away() {  # <pid> <ancestor>
+  local parent ancestor
+  parent=$(ps -o ppid= -p "$1" 2>/dev/null | tr -d '[:space:]')
+  case "$parent" in ''|*[!0-9]*) return 1 ;; esac
+  ancestor=$parent
+  while [ "$ancestor" -gt 1 ] && [ "$ancestor" != "$2" ]; do
+    ancestor=$(ps -o ppid= -p "$ancestor" 2>/dev/null | tr -d '[:space:]')
+    [ -n "$ancestor" ] || break
+  done
+  [ "$ancestor" != "$2" ]
+}
+
 install_autoarm_scripts() {
   local dir=$1
   mkdir -p "$dir/bin"
@@ -469,16 +485,20 @@ make_primary_home() {  # <dir>
   : > "$dir/AGENTS.md"
   : > "$dir/state/task.meta"
   install_autoarm_scripts "$dir"
+  declare -f reparented_away > "$dir/orphan-check.sh"
   # The process that fires the hook records its own pid as the session lock
   # owner, exactly as a real session does at session start.
   cat > "$dir/session.sh" <<'SH'
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$FM_HOME/orphan-check.sh"
 if [ "${FM_FIXTURE_ORPHAN_HERE:-0}" = 1 ]; then
   i=0
-  while [ "$i" -lt 200 ] && [ "$(ps -o ppid= -p $$ 2>/dev/null | tr -d ' ')" != 1 ]; do
+  while [ "$i" -lt 200 ] && ! reparented_away "$$" "$FM_FIXTURE_TEST_PID"; do
     sleep 0.05
     i=$((i + 1))
   done
+  reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 fi
 printf '%s\n' "$$" > "$FM_HOME/state/session-pid"
 printf '%s\n' "$$" > "$FM_HOME/state/.lock"
@@ -487,11 +507,14 @@ printf '%s\n' "$?" > "$FM_HOME/state/hook.rc"
 SH
   cat > "$dir/daemon.sh" <<'SH'
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$FM_HOME/orphan-check.sh"
 i=0
-while [ "$i" -lt 200 ] && [ "$(ps -o ppid= -p $$ 2>/dev/null | tr -d ' ')" != 1 ]; do
+while [ "$i" -lt 200 ] && ! reparented_away "$$" "$FM_FIXTURE_TEST_PID"; do
   sleep 0.05
   i=$((i + 1))
 done
+reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 printf '%s\n' "$$" > "$FM_HOME/state/daemon-pid"
 "$FM_SESSION_BIN" "$FM_HOME/session.sh"
 exit 0
@@ -500,18 +523,18 @@ SH
 }
 
 # Start the fixture tree detached from this suite's own process tree: the
-# launcher exits immediately, so the tree is reparented to init and the ancestry
+# launcher exits immediately, so the tree leaves this test's ancestry and the
 # walk terminates inside the fixture. Returns once the hook has recorded its exit
 # code.
 run_fixture_tree() {  # <dir> <session-bin> [<daemon-bin>]
   local dir=$1 session_bin=$2 daemon_bin=${3:-} i
   if [ -n "$daemon_bin" ]; then
     env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_PID \
-      FM_HOME="$dir" FM_SESSION_BIN="$session_bin" FM_FIXTURE_ORPHAN_HERE=0 \
+      FM_HOME="$dir" FM_SESSION_BIN="$session_bin" FM_FIXTURE_ORPHAN_HERE=0 FM_FIXTURE_TEST_PID=$$ \
       bash -c '"$0" "$1" &' "$daemon_bin" "$dir/daemon.sh"
   else
     env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_PID \
-      FM_HOME="$dir" FM_FIXTURE_ORPHAN_HERE=1 \
+      FM_HOME="$dir" FM_FIXTURE_ORPHAN_HERE=1 FM_FIXTURE_TEST_PID=$$ \
       bash -c '"$0" "$1" &' "$session_bin" "$dir/session.sh"
   fi
   i=0
@@ -606,16 +629,20 @@ make_background_session_home() {  # <dir>
   # the auto-arm alone; only the arm is replaced by the recording stub above.
   cp -R "$ROOT/bin" "$dir/bin"
   install_autoarm_scripts "$dir"
+  declare -f reparented_away > "$dir/orphan-check.sh"
   # Every fixture script ends in an explicit exit so bash can never tail-exec the
   # script under test in place of the fake claude, which would collapse the
   # chain the assertions depend on.
   cat > "$dir/frontend.sh" <<'SH'
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$FM_HOME/orphan-check.sh"
 i=0
-while [ "$i" -lt 200 ] && [ "$(ps -o ppid= -p $$ 2>/dev/null | tr -d ' ')" != 1 ]; do
+while [ "$i" -lt 200 ] && ! reparented_away "$$" "$FM_FIXTURE_TEST_PID"; do
   sleep 0.05
   i=$((i + 1))
 done
+reparented_away "$$" "$FM_FIXTURE_TEST_PID" || exit 1
 printf '%s\n' "$$" > "$FM_HOME/state/frontend-pid"
 CLAUDE_CODE_SESSION_ID=S1 CLAUDE_PID=$$ "$FM_HOME/bin/fm-lock.sh" > "$FM_HOME/state/frontend-lock.out" 2>&1
 printf '%s\n' "$?" > "$FM_HOME/state/frontend-lock.rc"
@@ -743,7 +770,7 @@ test_e2e_background_session_keeps_its_lock_across_a_recycled_chain() {
   dir="$TMP_ROOT/e2e-background-session"
   make_background_session_home "$dir"
   env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_PID \
-    FM_HOME="$dir" FM_FIXTURE_CLAUDE="$NAMED_CLAUDE" FM_POLL=1 FM_HEARTBEAT=999999 \
+    FM_HOME="$dir" FM_FIXTURE_CLAUDE="$NAMED_CLAUDE" FM_FIXTURE_TEST_PID=$$ FM_POLL=1 FM_HEARTBEAT=999999 \
     FM_CLAUDE_AUTOARM_SYNC_WAIT_MS=0 \
     bash -c '"$0" "$1" &' "$NAMED_CLAUDE" "$dir/frontend.sh"
   wait_for_file "$dir/state/frontend-lock.rc" "the front-end's lock result"
@@ -765,15 +792,15 @@ test_e2e_background_session_keeps_its_lock_across_a_recycled_chain() {
   grep -qx "$frontend" "$dir/state/phase-1/ancestry" || fail "the healthy chain did not reach the front-end"
   expect_phase_owned "$dir" 1 2 "$frontend" "healthy chain"
 
-  # Recycle the bridge: the daemon ends, the pty-host is reparented to init, and
+  # Recycle the bridge: the daemon ends, the pty-host leaves the front-end's tree, and
   # the front-end that holds the lock stays alive.
   kill -TERM "$daemon"
   i=0
-  while [ "$i" -lt 200 ] && { kill -0 "$daemon" 2>/dev/null || [ "$(ps -o ppid= -p "$ptyhost" 2>/dev/null | tr -d ' ')" != 1 ]; }; do
+  while [ "$i" -lt 200 ] && { kill -0 "$daemon" 2>/dev/null || ! reparented_away "$ptyhost" "$frontend"; }; do
     sleep 0.05
     i=$((i + 1))
   done
-  [ "$(ps -o ppid= -p "$ptyhost" 2>/dev/null | tr -d ' ')" = 1 ] || fail "the pty-host was not reparented to init after the daemon ended"
+  reparented_away "$ptyhost" "$frontend" || fail "the pty-host was not reparented away from the front-end after the daemon ended"
   kill -0 "$frontend" 2>/dev/null || fail "the front-end died with the daemon, so the recycled case cannot be exercised"
 
   # Phase 2: the same session id over the broken chain - the reported drift.
