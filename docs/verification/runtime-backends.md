@@ -638,6 +638,32 @@ skip-runner: pi-signed is not installed, so its pin check was not exercised
 
 The guard submits no prompt and spends no tokens, so it runs by default wherever a runner is installed; rerun it after every Claude or Pi upgrade.
 
+## Claude auto-compact window
+
+`bin/fm-spawn.sh` passes every interactive Claude worker launch `--autocompact <tokens>` from `config/crew-autocompact`, and validates that file against the range the CLI accepts, so the flag and its range are vendor-emitted facts.
+Claude validates option arguments before honouring `--version`, so `claude --autocompact <n> --version` checks the value without starting a session.
+An unknown option beside `--version` is not refused, so only the out-of-range refusals prove the flag is recognized.
+`tests/fm-claude-autocompact-live-e2e.test.sh` asserts that the tracked default and both range ends parse and that the values just outside the range refuse naming the flag.
+
+Verified 2026-10-10 on Claude Code 2.1.296 on Linux.
+
+```sh
+claude --help | grep -A1 -- --autocompact
+claude --autocompact 50000 --version
+bash tests/fm-claude-autocompact-live-e2e.test.sh
+```
+
+```
+  --autocompact <auto|tokens>           Auto-compact window size (auto, or
+                                        100k–1M tokens)
+error: option '--autocompact <auto|tokens>' argument '50000' is invalid. It must be 'auto', or between 100k and 1M (e.g. 500k, 200000, or 200 as shorthand)
+ok - claude 2.1.296 (Claude Code) accepts --autocompact 200000 and the range ends 100000 and 1000000
+ok - claude 2.1.296 (Claude Code) refuses --autocompact 99999 and 1000001, so the flag is recognized with fm-spawn's range
+# claude auto-compact live guard checked: claude
+```
+
+The guard submits no prompt and spends no tokens, so it runs by default wherever claude is installed; rerun it after every Claude upgrade.
+
 ## Codex hook trust
 
 Verified 2026-09-16 on codex-cli 0.151.0, macOS arm64, in a fresh linked worktree of this repository.
