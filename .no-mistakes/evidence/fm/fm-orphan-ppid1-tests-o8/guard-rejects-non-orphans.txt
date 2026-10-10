@@ -1,0 +1,4 @@
+direct child of test (2038544):   is_orphaned=false reparented_away=false
+grandchild of test (2038670):    is_orphaned=false reparented_away=false
+orphan (2038546, parent=2614 systemd): is_orphaned=true reparented_away=true
+dead pid:                 is_orphaned=false reparented_away=false
