@@ -1,0 +1,4 @@
+warning: secondmate sm-ac sync skipped before launch: primary default-branch commit cannot be resolved
+fm-config-inherit: warning: skipped crew-harness for /tmp/fm-lab-smac.139MK9/sm/config: destination does not allow inherited item (not gitignored or guard failed)
+fm-config-inherit: warning: skipped crew-autocompact for /tmp/fm-lab-smac.139MK9/sm/config: destination does not allow inherited item (not gitignored or guard failed)
+spawned sm-ac harness=claude kind=secondmate mode=secondmate yolo=off window=firstmate:fm-sm-ac worktree=/tmp/fm-lab-smac.139MK9/sm

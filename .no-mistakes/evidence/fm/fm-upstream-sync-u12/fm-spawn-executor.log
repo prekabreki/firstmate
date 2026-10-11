@@ -1,0 +1,11 @@
+ok - executor spawn: meta, pre-created branch at its base, published poll, excluded PR body, verbatim launch brief
+ok - headless templates: claude -p, codex exec, opencode run, each with the exit marker appended
+ok - executor refusals: mode, kind conflicts, issue, yolo, non-headless adapters, batch, relaunch --issue
+ok - brief and spawn agree on kind and issue in both directions
+ok - a raw executor command receives the encoded brief last unless it places __BRIEF__ itself
+ok - an executor below a stricter standing posture refuses without --accept-direct-pr and records the consent with it
+ok - a stale fm/<id> is reset onto the freshened base on retry; a held branch refuses with git's reason
+ok - foreman intake: a ready-for-agent issue launches and is claimed in-progress
+ok - foreman intake refuses an unpromoted issue and a repository the captain does not own
+ok - an exec:pro issue launches only on the --pro profile, which the task records
+ok - a project with no .foreman.local runs the plain executor lane with no label traffic

@@ -1,0 +1,61 @@
+# argv the spawned secondmate pane passed to claude:
+  --dangerously-skip-permissions
+  --add-dir
+  /tmp/fm-lab-smac.139MK9/primary/state/sm-ac.inbox
+  --settings
+  /tmp/fm-lab-smac.139MK9/primary/state/sm-ac.claude-settings.json
+  --autocompact
+  400000
+  :\ Firstmate\ operational\ input\ waiting:\ read\ \'/tmp/fm-lab-smac.139MK9/sm/state/operational-inbox/1791750086-e444766aee9089c0.msg\'\ and\ handle\ its\ contents\ as\ Firstmate\ operational\ input.
+# settings file:
+{
+    "feedbackDrafts": "off",
+    "attribution": {
+        "commit": "",
+        "pr": "",
+        "sessionUrl": false
+    },
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "'/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4P9EKZA35Y9TVQRQRFF21EY/bin/fm-busy-event.sh' apply '/tmp/fm-lab-smac.139MK9/primary/state' 'sm-ac' busy --gen 'g1791750085.4040038.11502' --source claude-hook --event user-prompt-submit 2>/dev/null || true"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "'/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4P9EKZA35Y9TVQRQRFF21EY/bin/fm-busy-event.sh' apply '/tmp/fm-lab-smac.139MK9/primary/state' 'sm-ac' idle --gen 'g1791750085.4040038.11502' --source claude-hook --event stop 2>/dev/null || true"
+                    }
+                ]
+            }
+        ],
+        "StopFailure": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "'/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4P9EKZA35Y9TVQRQRFF21EY/bin/fm-busy-event.sh' apply '/tmp/fm-lab-smac.139MK9/primary/state' 'sm-ac' idle --gen 'g1791750085.4040038.11502' --source claude-hook --event stop-failure 2>/dev/null || true"
+                    }
+                ]
+            }
+        ],
+        "SessionEnd": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "'/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M4P9EKZA35Y9TVQRQRFF21EY/bin/fm-busy-event.sh' apply '/tmp/fm-lab-smac.139MK9/primary/state' 'sm-ac' idle --gen 'g1791750085.4040038.11502' --source claude-hook --event session-end 2>/dev/null || true"
+                    }
+                ]
+            }
+        ]
+    }
+}
+# busy-state record: v1 gen=g1791750085.4040038.11502 seq=1 state=busy source=fm-spawn event=launch-brief ts=1791750085
