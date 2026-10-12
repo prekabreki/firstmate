@@ -1,0 +1,12 @@
+== mutation: Herdr if: removed (fork would run Herdr)
+not ok - fork PRs must run every job but Herdr and macOS, ran: invariants lint test-coverage tests-herdr tests-portable-parallel-1 tests-portable-parallel-2 tests-portable-serial tests-timing-aggregate
+exit=1
+== mutation: lint gated upstream-only (fork PR would lose lint)
+not ok - fork PRs must run every job but Herdr and macOS, ran: invariants test-coverage tests-portable-parallel-1 tests-portable-parallel-2 tests-portable-serial tests-timing-aggregate
+exit=1
+== mutation: parallel-1 gated on PR only (upstream push would lose it)
+not ok - upstream push must run every job, ran: invariants lint macos-stock-bash test-coverage tests-herdr tests-portable-parallel-2 tests-portable-serial tests-timing-aggregate
+exit=1
+== mutation: invariants gated upstream-only (fork loses invariants)
+not ok - fork PRs must run every job but Herdr and macOS, ran: lint test-coverage tests-portable-parallel-1 tests-portable-parallel-2 tests-portable-serial tests-timing-aggregate
+exit=1
