@@ -7,11 +7,14 @@
 # safeguards: PR runs supersede within one PR while main pushes are never
 # cancelled, and every CI job carries a finite hang tripwire drawn from the
 # three-tier timeout policy that docs/fm-test-portable-shards.md "Timeouts"
-# owns (fast, normal, heavy), so no job drifts back to a one-off number.
+# owns (fast, normal, heavy), so no job drifts back to a one-off number. They
+# also hold the "Fork-light CI" job gating that same doc owns: upstream runs
+# every job, while a fork keeps its PR gate and drops the rest.
 #
-# The workflow is parsed as YAML and its concurrency expressions are resolved
-# against simulated pull_request and push contexts, so the assertions describe
-# what GitHub would do, not how the file happens to be spelled.
+# The workflow is parsed as YAML and its concurrency and job `if:` expressions
+# are resolved against simulated repository and event contexts, so the
+# assertions describe what GitHub would do, not how the file happens to be
+# spelled.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -97,6 +100,47 @@ tier_timeout() {  # <tier> <job>...
 # Print every job id in the workflow, one per line.
 workflow_jobs() {
   ruby -ryaml -e 'puts YAML.load_file(ARGV[0]).fetch("jobs").keys' "$CI_WORKFLOW"
+}
+
+# Print, sorted one per line, the job ids GitHub would run for one simulated
+# repository and event. A job runs when its `if:` resolves true, or, with no
+# `if:`, when every job it needs runs. Only the constructs this workflow uses
+# are resolved: `always()`, `a == 'b'`, and `||`.
+running_jobs() {
+  local repository=$1 event=$2
+  ruby -ryaml -e '
+jobs = YAML.load_file(ARGV[0]).fetch("jobs")
+context = { "github.repository" => ARGV[1], "github.event_name" => ARGV[2] }
+
+value = lambda do |token|
+  token = token.strip
+  next token[1..-2] if token.start_with?("\x27") && token.end_with?("\x27")
+  raise "unresolvable context reference: #{token}" unless context.key?(token)
+  context.fetch(token)
+end
+
+term = lambda do |expression|
+  expression = expression.strip
+  next true if expression == "always()"
+  raise "unresolvable condition: #{expression}" unless expression.include?("==")
+  left, right = expression.split("==", 2)
+  value.call(left) == value.call(right)
+end
+
+runs = {}
+decide = lambda do |name|
+  next runs[name] if runs.key?(name)
+  job = jobs.fetch(name)
+  condition = job["if"].to_s.strip.sub(/\A\$\{\{(.+)\}\}\z/m, "\\1")
+  runs[name] = if condition.empty?
+    Array(job["needs"]).all? { |need| decide.call(need) }
+  else
+    condition.split("||").any? { |t| term.call(t) }
+  end
+end
+
+puts jobs.keys.select { |name| decide.call(name) }.sort
+' "$CI_WORKFLOW" "$repository" "$event"
 }
 
 group_of() { printf '%s\n' "$1" | cut -f1; }
@@ -249,7 +293,47 @@ RUBY
   pass "CI matrices cover every executable serial lane and canonical lint root exactly once"
 }
 
+# Upstream keeps the complete workflow on both events; the fork-light gating
+# must never reach kunchenguid/firstmate.
+test_upstream_runs_every_job_on_every_event() {
+  local all event actual
+  all=$(workflow_jobs | LC_ALL=C sort) || fail "could not list ci.yml jobs"
+  for event in pull_request push; do
+    actual=$(running_jobs kunchenguid/firstmate "$event") || fail "could not resolve upstream $event jobs"
+    [ "$actual" = "$all" ] \
+      || fail "upstream $event must run every job, ran: $(printf '%s' "$actual" | tr '\n' ' ')"
+  done
+  pass "upstream runs every ci.yml job on pull requests and main pushes"
+}
+
+# A fork PR still gates on lint, invariants, coverage, and every portable
+# behaviour lane, and skips only the Herdr and stock macOS Bash lanes.
+test_fork_pull_request_keeps_the_portable_gate() {
+  local expected actual
+  expected=$(workflow_jobs | grep -vx -e tests-herdr -e macos-stock-bash | LC_ALL=C sort) \
+    || fail "could not list ci.yml jobs"
+  actual=$(running_jobs prekabreki/firstmate pull_request) || fail "could not resolve fork PR jobs"
+  [ "$actual" = "$expected" ] \
+    || fail "fork PRs must run every job but Herdr and macOS, ran: $(printf '%s' "$actual" | tr '\n' ' ')"
+  pass "fork PRs run lint, invariants, coverage, and every portable lane"
+}
+
+# A fork main push re-tests a tree its PR already tested, so only the
+# seconds-long fast tier runs there.
+test_fork_main_push_runs_only_the_fast_tier() {
+  local expected actual
+  # shellcheck disable=SC2086
+  expected=$(printf '%s\n' $FAST_TIER_JOBS | LC_ALL=C sort)
+  actual=$(running_jobs prekabreki/firstmate push) || fail "could not resolve fork push jobs"
+  [ "$actual" = "$expected" ] \
+    || fail "fork main pushes must run only the fast tier, ran: $(printf '%s' "$actual" | tr '\n' ' ')"
+  pass "fork main pushes run only the fast-tier checks"
+}
+
 test_ci_matrices_match_executable_partitions
+test_upstream_runs_every_job_on_every_event
+test_fork_pull_request_keeps_the_portable_gate
+test_fork_main_push_runs_only_the_fast_tier
 test_pr_pushes_supersede_within_one_pr
 test_separate_prs_do_not_cancel_each_other
 test_main_pushes_are_never_cancelled

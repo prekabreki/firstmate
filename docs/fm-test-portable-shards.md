@@ -137,3 +137,17 @@ A lane that reaches its tier bound needs investigation and a distribution or run
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) holds the executable values and names each job's tier beside its `timeout-minutes`.
 [`tests/fm-ci-workflow.test.sh`](../tests/fm-ci-workflow.test.sh) holds the policy against the parsed workflow: every job belongs to exactly one tier, the workflow carries exactly three distinct job-level values, the fast tier stays within 5-10 minutes, the normal jobs share one 30-minute budget, and the Herdr family-run step is the 20-minute tripwire below its job backstop with an `always()` teardown after it.
 A passing coverage guard does not establish a healthy job duration; refresh the healthy figures above from the lanes' uploaded timing artifacts.
+
+## Fork-light CI
+
+In `kunchenguid/firstmate` every [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) job runs unconditionally on pull requests and main pushes.
+Any other repository is a fork, where job-level `if:` conditions keyed on `github.repository` trim the run so a fork's own Actions usage stays modest.
+GitHub can pause every workflow on a busy fork without notice beyond a banner on its Actions page, and a paused fork reports no checks at all, so a pull request there can merge with no CI.
+
+A fork pull request skips only the Herdr and macOS stock Bash lanes and keeps lint, repo invariants, the coverage guard, both portable parallel shards, all nine portable serial shards, and the timing aggregate, dropping from eighteen hosted jobs to sixteen.
+Herdr and macOS remain upstream's responsibility, and a fork change that touches either surface gets that coverage when it is contributed upstream.
+A fork main push runs only the fast tier, because the pull request that produced that tree already ran the gate; that drops eighteen hosted jobs to three.
+A commit pushed straight to a fork's main therefore gets only the fast checks, so open a pull request when a fork change needs the full portable gate.
+
+The serial shard count is unchanged on forks, because merging shards would push a serial job toward its 30-minute normal-tier bound.
+[`tests/fm-ci-workflow.test.sh`](../tests/fm-ci-workflow.test.sh) resolves every job's `if:` for both repositories and both events, so upstream cannot silently lose a job and a fork cannot silently lose its pull-request gate.
