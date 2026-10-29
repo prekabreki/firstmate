@@ -534,10 +534,11 @@
 #   Absent means the tracked default 200000; a whole number from 100000 to
 #   1000000 (the range the Claude CLI accepts) sets that window; `off` omits the
 #   flag and leaves Claude's own default. An executor's one-shot `claude -p`
-#   carries no flag. Any other value, or an unreadable file, refuses the spawn
-#   before any endpoint, worktree, or record exists and names the accepted
-#   values. The file is read on every spawn and relaunch and is inherited into
-#   secondmate homes (bin/fm-config-inherit-lib.sh). It is independent of the
+#   carries no flag, and the window does not apply on the t3code backend, where
+#   Claude runs on its own default. Any other value, or an unreadable file,
+#   refuses the spawn before any endpoint, worktree, or record exists and names
+#   the accepted values. The file is read on every spawn and relaunch and is
+#   inherited into secondmate homes (bin/fm-config-inherit-lib.sh). It is independent of the
 #   COMPACT_ADVISER_DISABLE floor below, which turns the compact adviser off.
 #   docs/configuration.md "Claude auto-compact window" owns the operator contract.
 # Codex approval mode (config/codex-approval-mode):

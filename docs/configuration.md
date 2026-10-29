@@ -1394,6 +1394,7 @@ The token is the file's whitespace-trimmed content.
 
 The range is the one the Claude CLI accepts; Firstmate does not accept the CLI's `auto` or `k`-suffixed spellings.
 An executor's one-shot `claude -p` launch never carries the flag.
+The bounded window does not apply on the [t3code backend](t3code-backend.md#active-limits), where T3 owns the Claude command line and Claude runs on its own default.
 Any other value or an unreadable file refuses every spawn from that home, whichever harness it would launch, before any endpoint, worktree, or task record exists, and the diagnostic names the accepted values.
 
 This window is separate from the compact adviser, which every spawned agent runs with disabled through `COMPACT_ADVISER_DISABLE=1` (see [Worker launch environment](#worker-launch-environment-configlaunch-env-allowlist)); this setting never changes that.

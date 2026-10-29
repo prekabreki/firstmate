@@ -11,8 +11,9 @@
 # resume the assigned work. Both fallbacks use a model reviewer.
 # Explicit settings, including invalid files, directories and dangling links,
 # are never overwritten. Publication uses an exact-destination atomic link;
-# a concurrent setting wins. Remote endpoints, non-bypass launches and T3 Code
-# tasks, which already run at T3's full-access mode, refuse.
+# a concurrent setting wins. Remote endpoints, non-bypass launches, T3 Code
+# tasks, which already run at T3's full-access mode, and one-shot executor
+# tasks, which fm-control cannot interrupt or recover under a fallback, refuse.
 # The existing task lease guard protects configuration publication. Release its
 # command lock before invoking child lifecycle commands, which guard themselves.
 # A lifecycle failure leaves the setting saved and reports incomplete recovery.
@@ -66,6 +67,10 @@ case "$HARNESS" in
 esac
 [ "$(fm_backend_of_meta "$META")" != t3code ] || {
   echo "error: backend=t3code already runs $HARNESS at T3's full-access runtime mode and cannot honor config/$SETTING=$FALLBACK; approve the pending request in T3 Code itself or choose another backend; nothing changed" >&2
+  exit 1
+}
+[ "$(fm_meta_get "$META" kind)" != executor ] || {
+  echo "error: kind=executor is a one-shot headless $HARNESS run that fm-control cannot interrupt or recover under config/$SETTING=$FALLBACK; re-dispatch the task on another headless adapter or as a ship task; nothing changed" >&2
   exit 1
 }
 [ ! -e "$CONFIG/$SETTING" ] && [ ! -L "$CONFIG/$SETTING" ] || {

@@ -173,6 +173,15 @@ for harness in codex claude; do
   assert_grep 'approve the pending request in T3 Code itself' "$home/t3code.out" 't3code refusal did not name the remedy'
   pass "$harness refuses a t3code task before saving a fallback T3 cannot honor"
 
+  printf 'harness=%s\napproval_mode=bypass\nkind=executor\n' "$harness" > "$home/state/task.meta"
+  rc=0
+  run_apply > "$home/executor.out" 2>&1 || rc=$?
+  [ "$rc" -eq 1 ] || fail "$harness executor task was not refused"
+  [ -z "$(find "$home/config" -mindepth 1 -print)" ] || fail 'executor refusal changed configuration'
+  [ "$(wc -l < "$home/control.log")" = "$before" ] || fail 'executor refusal reached lifecycle control'
+  assert_grep 're-dispatch the task on another headless adapter or as a ship task' "$home/executor.out" 'executor refusal did not name the remedy'
+  pass "$harness refuses an executor task before saving a fallback it cannot recover"
+
   printf 'harness=%s\napproval_mode=bypass\n' "$harness" > "$home/state/task.meta"
   if run_apply FAIL_CONTROL=1 > "$home/failure.out" 2>&1; then fail 'failed lifecycle claimed success'; fi
   [ "$(cat "$home/config/$setting")" = "$fallback" ] || fail 'lifecycle failure lost saved remedy'
