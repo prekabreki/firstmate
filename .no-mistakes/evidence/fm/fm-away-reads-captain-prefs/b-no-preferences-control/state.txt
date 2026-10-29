@@ -1,0 +1,9 @@
+### host log
+1793277945	start	gen=host-296966-1793277945	primary=claude
+1793277957	handled	turn=host-296966-1793277945.1	posture=away	rc=0	reports=1	error=0 cost=0.023895 conversation_cost=0.023895 input=8 cache_read=71392 cache_write=2570 output=646 turns=4	signal: /tmp/fm-lab.dOK1Mg/fm/state/zp-story.status
+### host.out / rc
+### zp-story.status
+needs-decision [key=story-order]: Zero Parades ch.4: should the cop confront the informant at the docks now, or wait for backup and lose the lead? This is a story call that needs plot detail.
+### worker inbox
+### branch-outcomes.jsonl
+{"seq":1,"epoch":1793277955,"task":"zp-story","wake":"signal: /tmp/fm-lab.dOK1Mg/fm/state/zp-story.status","verdict":"captain","summary":"Zero Parades ch.4 needs your story call (key story-order): should the cop confront the informant at the docks now, or wait for backup and lose the lead? Your away words ('Keep pushing Zero Parades') don't pre-answer a plot choice and no standing preference delegates it, so I left it unanswered; the worker waits for your return.","silent":false,"statusEndpoint":192,"statusIdent":"strong:52:2202538:2026-10-29 13:45:45.616344772 +0100"}

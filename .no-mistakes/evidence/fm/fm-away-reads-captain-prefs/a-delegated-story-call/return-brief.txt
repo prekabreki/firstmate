@@ -1,0 +1,27 @@
+fm-afk-launch: away-posture record archived at /tmp/fm-lab.kIomK1/fm/state/afk-contracts/1793277884.afk-contract
+fm-afk-launch: away mode stopped; no daemon terminal was running, .afk cleared, and the posture record archived
+=== Return brief (away 2026-10-29T12:44:44Z -> 2026-10-29T12:45:27Z, 43s) ===
+Supervisor health:
+  - GAP: watcher downtime was detected during the away window (recovery marker present)
+Your instructions:
+  your words at entry:
+    Going to bed. Keep pushing Zero Parades.
+  the away session took no action under them.
+  decided under your standing preferences, not your away words:
+    - zp-story: per your standing preferences: "Story calls that would need plot detail are firstmate's to decide under the Capable Cop rule" - answered Zero Parades ch.4 (story-order): the cop confronts the informant at the docks now rather than waiting for backup. Steer is recorded in the worker's inbox; the doorbell didn't reach the pane, so the watcher will re-ring.
+Waiting on you:
+  (nothing)
+Tried and failed, or could not be fixed:
+  (nothing)
+Landed, cleanup due:
+  (nothing)
+Handled while away:
+  1 outcome(s) handled by the away session (1 routine, 0 escalated above)
+  the drain's BRANCH OUTCOMES section presents the visible outcomes: each task's captain outcomes on one line until you acknowledge them, visible routine notes once, past its limit as a count
+Cost: 1 supervision outcome(s) recorded (1 routine, 0 captain); 1 task(s) live at return.
+catch-up health: GAP: watcher downtime was detected during the away window (recovery marker present)
+catch-up wake: BRANCH OUTCOMES, ROUTINE (handled by the supervision session since your last drain; for your awareness, nothing to acknowledge):
+catch-up wake: [seq 1] zp-story: per your standing preferences: "Story calls that would need plot detail are firstmate's to decide under the Capable Cop rule" - answered Zero Parades ch.4 (story-order): the cop confronts the informant at the docks now rather than waiting for backup. Steer is recorded in the worker's inbox; the doorbell didn't reach the pane, so the watcher will re-ring.
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 271635.1793277922.SHq9mP
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+rc=0
