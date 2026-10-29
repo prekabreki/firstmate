@@ -28,6 +28,7 @@ Every invocation is process-group bounded by `FM_WEDGE_ALARM_TIMEOUT_SECS`, whic
 On timeout or daemon shutdown, the notifier process group is terminated and the next configured channel may run.
 AppleScript receives the summary as an argv item rather than interpolated source, so summary text cannot alter the script.
 See [`examples/wedge-alarm`](examples/wedge-alarm) for a copyable config.
+`bin/fm-notify-lib.sh` owns the channel-file parsing, the bounded runner, and the `command:` channel, which the away-mode phone alert (`config/away-notify`, [configuration](configuration.md#away-mode-phone-alert-configaway-notify)) shares.
 
 ## Test safety
 

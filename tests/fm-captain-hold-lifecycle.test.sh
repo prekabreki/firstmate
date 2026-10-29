@@ -1170,6 +1170,37 @@ EOF
 # The recorded-answer guard survives an out-of-band close: a bare tasks-axi done
 # fails verify until answer records the captain's word, and an ordinary finished
 # task can never be dressed up as an answered captain call.
+# While the captain is away, a new captain hold set by main alerts the phone
+# through bin/fm-away-notify.sh once; a repeated hold, the captain's own --until
+# deferral, and a hold the supervision branch sets (its captain outcome row
+# alerts instead) do not.
+test_new_hold_alerts_the_phone_once_while_away() {
+  local home alerts
+  home=$(make_home away-alert)
+  alerts="$home/alerts"
+  cat > "$home/config/away-notify" <<EOF
+command:printf '%s\n' "\$1" >> '$alerts'
+EOF
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$ROOT/bin/fm-afk-contract.sh" enter \
+    --words 'keep going' >/dev/null 2>&1 || fail "could not enter away mode"
+  FM_AWAY_NOTIFY_MIN_SECS=0 run_captain "$home" hold sample-phone-call --title "Decide the sample cut" \
+    --reason "captain cut choice pending" --repo sample >/dev/null \
+    || fail "could not hold the captain call"
+  [ "$(cat "$alerts" 2>/dev/null)" = 'Firstmate: waiting on your decision: Decide the sample cut - captain cut choice pending' ] \
+    || fail "a new hold while away did not alert once: $(cat "$alerts" 2>/dev/null)"
+  FM_AWAY_NOTIFY_MIN_SECS=0 run_captain "$home" hold sample-phone-call \
+    --reason "captain cut choice pending" >/dev/null || fail "could not repeat the hold"
+  FM_AWAY_NOTIFY_MIN_SECS=0 FM_SUPERVISION_ACTOR=branch run_captain "$home" hold sample-branch-call \
+    --title "Decide the branch call" --reason "branch held it" --repo sample >/dev/null \
+    || fail "could not hold the branch call"
+  FM_AWAY_NOTIFY_MIN_SECS=0 run_captain "$home" hold sample-deferred-call --title "Revisit later" \
+    --reason "captain deferred" --repo sample --until 2099-01-01 >/dev/null \
+    || fail "could not hold the deferred call"
+  [ "$(wc -l < "$alerts" | tr -d ' ')" = 1 ] \
+    || fail "a repeated, branch, or deferred hold alerted the phone: $(cat "$alerts")"
+  pass "a new captain hold set by main while away alerts the phone once"
+}
+
 test_out_of_band_close_is_recordable() {
   local home id show
   home=$(make_home out-of-band)
@@ -4782,6 +4813,7 @@ test_release_frees_held_work
 test_hold_stamp_precedes_hold_visibility
 test_interrupted_answer_preserves_hold_age
 test_deferral_leaves_captains_call_until_due
+test_new_hold_alerts_the_phone_once_while_away
 test_out_of_band_close_is_recordable
 test_visual_review_uses_shared_completion_owner
 test_none_inventory_and_resolved_prose_do_not_create_holds

@@ -11,7 +11,7 @@ Start with the directory layout, then use the setting reference for the behavior
 | Task windows and worker tools | [Runtime backend](#runtime-backend-configbackend--fm_backend) and [harness support](#harness-support) |
 | Worker permissions, accounts, or environment | [Codex approval review](#codex-automatic-approval-review), [Claude permission mode](#claude-permission-mode-configclaude-permission-mode), [Claude auto-compact window](#claude-auto-compact-window-configcrew-autocompact), [Codex permission mode](#codex-permission-mode-configcodex-permission-mode), [persistent managed-policy failover](#persistent-managed-policy-failover), [worker account pin](#worker-account-pin-configclaude-account-configpi-account), [worker tool exclusions](#worker-tool-exclusions-configcrew-exclude-tools), [worker launch environment](#worker-launch-environment-configlaunch-env-allowlist), and its [Orca environment source](#orca-environment-source-configlaunch-env-tmux-session) |
 | Backlog, preferences, and memory | [Backlog backend](#backlog-backend-taskstoml--configbacklog-backend), [captain preferences](#captain-preferences-datacaptainmd--datacaptain-sharedmd), [external memory tiers](#external-memory-tiers-memory-layering-section), [record export](#record-export-configrecord-export-root), and [startup memory budget](#startup-memory-budget-configstartup-memory-budget) |
-| Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), [warm-cache compaction](#warm-cache-compaction-configwarm-compact), and [Calm preference](#calm-preference-configcalm) |
+| Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), [warm-cache compaction](#warm-cache-compaction-configwarm-compact), [away-mode phone alert](#away-mode-phone-alert-configaway-notify), and [Calm preference](#calm-preference-configcalm) |
 | Persistent secondmates | [Secondmate routes](#secondmate-routes-datasecondmatesmd) |
 | Review bots on owned GitHub pull requests | [Contribution review bots](#contribution-review-bots-configcontribution-review-bots) |
 | Per-run overrides and tuning | [Environment variables](#environment-variables) |
@@ -707,6 +707,25 @@ An absent file means `auto`, i.e. default-on on macOS: the alarm exists precisel
 
 A missing or failing channel logs and falls through to the next, never crashing the daemon.
 See [`wedge-alarm.md`](wedge-alarm.md) for the current channel reference, [`verification/supervision.md`](verification/supervision.md#wedge-alarm-channels) for active evidence, and [`examples/wedge-alarm`](examples/wedge-alarm) for a copyable config.
+
+## Away-mode phone alert (config/away-notify)
+
+Away mode holds anything that needs the captain for their return.
+`config/away-notify` (local, gitignored) also alerts the captain's phone each time something starts waiting, so they can connect and answer before returning.
+It uses the same channel file grammar as `config/wedge-alarm`: one directive per non-empty line, `#` comments, and `command:<cmd>`, which runs `<cmd>` through `sh -c` with the alert text as `$1` and on stdin.
+An absent file, or one with no `command:` directive, is off, and `off` on any line disables every channel.
+
+```sh
+# config/away-notify
+command:kdeconnect-cli -d <device-id> --ping-msg "$1"
+```
+
+An alert fires only while an away record stands, never in an attended session or quiet mode, and only for a new captain outcome: a captain-verdict outcome the away session records, or a new captain hold.
+Routine outcomes never alert.
+At most one alert goes out per `FM_AWAY_NOTIFY_MIN_SECS` (default 600); an outcome inside that window is counted into the next alert rather than dropped.
+Each command is bounded by `FM_AWAY_NOTIFY_TIMEOUT_SECS` (default 10) in its own process group, and a failing, missing, or hung command logs a warning without delaying or breaking supervision.
+The away entry announcement says whether a phone channel is configured.
+`bin/fm-away-notify.sh`'s header owns the exact firing, rate-limit, and bounding rules.
 
 ## Trace context propagation (config/trace-context / FM_TRACE_CONTEXT)
 
@@ -3285,6 +3304,8 @@ FM_MAX_DEFER_SECS=300              # max buffered escalation age before retry pl
 FM_WEDGE_ALARM_CHANNEL=            # override config/wedge-alarm with one active-alert directive for the wedge alarm; off|auto|osascript|herdr|rex|command:<cmd>; absent = auto (macOS -> an OS notification)
 FM_WEDGE_ALARM_EXEC=              # notifier seam: route every channel (osascript, herdr, command:) through this command as `<cmd> <channel> <summary>`; "discard" fires nothing; unset in production; the daemon defaults it to "discard" when sourced so no test posts a real notification (docs/wedge-alarm.md)
 FM_WEDGE_ALARM_TIMEOUT_SECS=10    # maximum seconds for each osascript, herdr, override, or command: notifier before its watchdog terminates it and continues to the next channel; invalid or zero values use 10
+FM_AWAY_NOTIFY_MIN_SECS=600       # minimum seconds between away-mode phone alerts (config/away-notify); outcomes inside the window are counted into the next alert; 0 sends every one
+FM_AWAY_NOTIFY_TIMEOUT_SECS=10    # maximum seconds for each config/away-notify command before its watchdog terminates it; invalid or zero values use 10
 FM_INJECT_FAIL_SLEEP=30            # seconds to back off when the supervisor endpoint is unavailable
 FM_INJECT_CONFIRM_RETRIES=3        # daemon Enter-retry attempts after typing a digest once
 FM_INJECT_CONFIRM_SLEEP=0.5        # seconds between daemon submit checks

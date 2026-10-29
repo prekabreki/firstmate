@@ -229,6 +229,27 @@ test_plain_entry_and_refresh_leave_no_wait() {
   pass "a plain entry records no mandate in one step, and a refresh leaves the standing record untouched"
 }
 
+# A configured phone channel (config/away-notify, bin/fm-away-notify.sh) is
+# recorded at entry and announced instead of "No phone channel is configured".
+test_entry_announces_a_configured_phone_channel() {
+  local home out
+  home=$(make_home phone)
+  mkdir -p "$home/config"
+  printf '# phone\ncommand:true\n' > "$home/config/away-notify"
+  out=$(contract "$home" enter --words 'ping me if needed' 2>&1) || fail "entry failed: $out"
+  assert_contains "$out" 'hold-for-return with phone alerts. Your phone is alerted when something needs you' \
+    'the announcement names the phone channel'
+  assert_contains "$out" '  reach: hold-for-return with phone alerts.' 'the read-back names the phone channel'
+  assert_not_contains "$out" 'No phone channel is configured' 'the announcement still denied a phone channel'
+  [ "$(contract "$home" field reach_channels)" = phone ] || fail "reach channels are not phone"
+  contract "$home" validate >/dev/null 2>&1 || fail "a phone record does not validate"
+  printf 'off\n' >> "$home/config/away-notify"
+  contract "$home" archive >/dev/null 2>&1 || fail "archive failed"
+  out=$(contract "$home" enter 2>&1) || fail "entry with the channel off failed: $out"
+  assert_contains "$out" 'hold-for-return only. No phone channel is configured' 'an off channel is announced as none'
+  pass "entry records and announces whether a phone channel is configured"
+}
+
 test_new_words_archive_the_standing_record() {
   local home first_epoch archived
   home=$(make_home replace)
@@ -672,6 +693,7 @@ test_retired_two_step_entry_is_refused_by_name
 test_enter_removes_a_legacy_proposal_without_promoting_it
 test_same_turn_entry_pre_authorizes_nothing_on_the_never_set
 test_plain_entry_and_refresh_leave_no_wait
+test_entry_announces_a_configured_phone_channel
 test_new_words_archive_the_standing_record
 test_failed_replacement_keeps_the_standing_record
 test_failed_final_replacement_rolls_back_the_superseded_archive
