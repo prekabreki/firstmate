@@ -1,0 +1,70 @@
+
+===== S1 announcement WITHOUT config/away-notify (fm-afk-launch.sh enter) =====
+Away posture recorded at 2026-10-29T12:33:40Z: hold-for-return only. No phone channel is configured; anything that needs you waits for your return. Your away instructions are recorded verbatim; the away session will carry them out where it can, and anything it is unsure of, or that needs you, waits for your return. Destructive, irreversible, and security-sensitive actions are never pre-authorizable, whatever the words say. Expected return: not given. Spend cap: 4 concurrent workers.
+Away posture (recorded):
+  entered: 2026-10-29T12:33:40Z
+none
+
+===== S2 announcement WITH config/away-notify =====
+Away posture recorded at 2026-10-29T12:33:41Z: hold-for-return with phone alerts. Your phone is alerted when something needs you, so you can connect and answer; until then it waits for your return. Your away instructions are recorded verbatim; the away session will carry them out where it can, and anything it is unsure of, or that needs you, waits for your return. Destructive, irreversible, and security-sensitive actions are never pre-authorizable, whatever the words say. Expected return: not given. Spend cap: 4 concurrent workers.
+Away posture (recorded):
+  entered: 2026-10-29T12:33:41Z
+phone
+session-start away line:
+   That wake is automatic supervision, not the captain's return: drain and handle it under the away posture, and never run the return from it.
+present - away posture recorded at 2026-10-29T12:33:41Z (hold-for-return with phone alerts; bin/fm-afk-contract.sh readback for the mandate); no daemon runs, the ordinary supervision session continues.
+
+===== S3 captain outcome while away -> one alert, $1 and stdin =====
+1
+append rc=0
+phone $1:
+Firstmate: PR #12 for alpha is green and needs your merge call (merge is captain-only)
+phone stdin:
+Firstmate: PR #12 for alpha is green and needs your merge call (merge is captain-only)
+
+===== S4 routine outcome while away -> no alert =====
+2
+append rc=0 alerts=1
+
+===== S5 drain re-presents the unacknowledged captain outcome -> no re-send =====
+alerts after repeated presentation/drain: 1
+
+===== S6 rate limit (default 600s): three outcomes in the window, then window passes =====
+fm-away-notify: rate-limited; 1 outcome(s) will be counted in the next alert
+fm-away-notify: rate-limited; 2 outcome(s) will be counted in the next alert
+rate record: 1793277221 1793277225 2
+last 2 phone lines:
+Firstmate: gamma needs a product call
+Firstmate: zeta needs your answer (+2 more waiting since the last alert)
+
+===== S7 failing / missing / hung command never breaks or stalls append =====
+append rc=0 seq=7 elapsed=2s
+fm-away-notify: warning: a phone alert command exited 7 (command redacted)
+fm-away-notify: warning: a phone alert command timed out (limit 2s; command redacted)
+fm-away-notify: warning: a phone alert command exited 127 (command redacted)
+last phone line: Firstmate: eta needs your decision
+hung sleeps left running: 1
+
+===== S8 away-daemon shape: new captain hold by main while away -> one alert; repeat/branch/--until do not =====
+lab-cut
+hold rc=0
+repeat hold rc=0
+branch hold rc=0
+until hold rc=0
+new alerts from holds: 1
+Firstmate: waiting on your decision: Pick the release cut - two candidate cuts, captain decides
+
+===== S9 quiet mode -> no alert =====
+mode: quiet
+new alerts in quiet mode: 0
+
+===== S10 attended (no away record) -> no alert =====
+away record present: no
+new alerts while attended: 0
+
+===== Full phone inbox =====
+Firstmate: PR #12 for alpha is green and needs your merge call (merge is captain-only)
+Firstmate: gamma needs a product call
+Firstmate: zeta needs your answer (+2 more waiting since the last alert)
+Firstmate: eta needs your decision
+Firstmate: waiting on your decision: Pick the release cut - two candidate cuts, captain decides
