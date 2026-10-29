@@ -1440,6 +1440,7 @@ Existing explicit settings are never overwritten, including invalid or empty fil
 To retain a secondmate's remedy across convergence, select it in the primary home under the [inherited-local-material contract](../.agents/skills/secondmate-provisioning/SKILL.md).
 Recovery uses the existing [lifecycle control plane](agent-control.md), respecting its leases and supported-runtime limits; incomplete recovery is reported with the saved setting and work preserved.
 A `backend=t3code` task refuses before any change, because T3 already runs it at `full-access` and its spawns refuse both fallbacks; approve the pending request in T3 Code itself or choose another backend.
+A `kind=executor` task refuses before any change, because `fm-control.sh` cannot interrupt a one-shot executor, so recovery cannot complete; re-dispatch it on another headless adapter or as a ship task.
 Generic login failures do not establish a defeated bypass, and managed hook review remains a separate operator decision.
 Neither fallback is unrestricted execution, and Firstmate does not change vendor or security-agent settings.
 
