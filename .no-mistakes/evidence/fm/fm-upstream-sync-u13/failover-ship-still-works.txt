@@ -1,0 +1,14 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.aDMGQG
+saved config/claude-permission-mode=auto; approvals use a model reviewer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.aDMGQG
+interrupt-delivered ship1 harness=claude backend=tmux verified=agent-alive cancel=unconfirmed
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.aDMGQG
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.aDMGQG
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched ship1 harness=claude from=claude model=haiku effort=default backend=tmux endpoint=primary:fm-ship1 worktree=/tmp/fm-lab.aDMGQG/pool/.treehouse/demo-fb9edf/2/demo
+managed approval failover: ship1 relaunched with config/claude-permission-mode=auto
+rc=0
+config-after:
+claude-permission-mode
+auto
+bash-5.3$

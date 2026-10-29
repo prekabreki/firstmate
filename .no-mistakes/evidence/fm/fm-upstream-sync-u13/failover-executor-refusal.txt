@@ -1,0 +1,6 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.aDMGQG
+error: kind=executor is a one-shot headless claude run that fm-control cannot interrupt or recover under config/claude-permission-mode=auto; re-dispatch the task on another headless adapter or as a sh
+ip task; nothing changed
+rc=1
+config-after:
+bash-5.3$
