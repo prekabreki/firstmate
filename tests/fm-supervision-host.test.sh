@@ -631,6 +631,9 @@ test_away_wake_is_handled_on_the_engine_and_never_reaches_main() {
   echo hold-lease > "$home/stub-mode"
   # Dialog in the mirror that an away wake must neither carry nor mark read.
   printf '{"hook_event_name":"UserPromptSubmit","prompt_id":"p1","prompt":"keep the export worker on low effort"}' > "$home/mirror-seed.1"
+  # The captain's standing preferences, which the away wake must point at.
+  mkdir -p "$home/data"
+  printf 'Story calls are firstmate'"'"'s to decide.\n' > "$home/data/captain.md"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "away: the host never started a watcher cycle: $(cat "$home/host.out")"
   append_status "$home" 'step one'
@@ -647,6 +650,8 @@ test_away_wake_is_handled_on_the_engine_and_never_reaches_main() {
   assert_re '^arg=sonnet$' "$first" "the engine must default to its default model"
   assert_re '^arg=--session-id$' "$first" "the first turn must open a new conversation"
   assert_re '^POSTURE: AWAY\.' "$first" "the wake must carry the away tail"
+  assert_grep "STANDING PREFERENCES: the captain's standing instructions for this home are $home/data/captain.md." "$first" \
+    "the away wake must point at the home's standing preferences"
   assert_grep 'keep the export worker on low effort' "$home/state/.host-mirror.jsonl" "fixture: the captain's dialog was not mirrored"
   assert_no_re 'MAIN DIALOG MIRROR|low effort' "$first" "an away wake must carry no dialog mirror"
   assert_absent "$home/state/.host-mirror-cursor" "a handled away wake must leave the mirror cursor where it was"

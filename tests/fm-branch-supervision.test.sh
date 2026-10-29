@@ -25,6 +25,11 @@ test_branch_prompt_is_byte_stable_and_above_cache_floor() {
   # a byte-stable prompt must not absorb any of it.
   printf 'signal: task-1 done\n' > "$home_a/state/task-1.status"
   printf 'window=x\nharness=pi\n' > "$home_a/state/task-1.meta"
+  # The captain's standing preferences are per-home and change mid-session, so
+  # they reach the branch only through the away wake's tail, never this prefix.
+  mkdir -p "$home_a/data"
+  printf 'PREFERENCE-CANARY: story calls are firstmate'"'"'s to decide.\n' > "$home_a/data/captain.md"
+  printf 'PREFERENCE-CANARY-SHARED\n' > "$home_a/data/captain-shared.md"
 
   out_a=$(cd "$TMP_ROOT" && FM_HOME="$home_a" TZ=UTC "$ROOT/bin/fm-branch-prompt.sh") \
     || fail "branch prompt generator failed for home A"
@@ -35,6 +40,7 @@ test_branch_prompt_is_byte_stable_and_above_cache_floor() {
 
   [ "$out_a" = "$out_b" ] || fail "branch prompt differs across homes/cwd/timezone: prefix stability broken"
   [ "$out_a" = "$out_c" ] || fail "branch prompt differs across runs at different times: prefix stability broken"
+  assert_not_contains "$out_a" "PREFERENCE-CANARY" "the home's preference files leaked into the byte-stable prefix"
 
   # Below the provider's 1024-token caching minimum a branch prompt gets no
   # cache reuse at all (measured in the feasibility evidence), so hold a
@@ -68,6 +74,14 @@ test_branch_prompt_is_byte_stable_and_above_cache_floor() {
   case "$out_a" in
     *"A second mate's status log is a relay channel for its child work"*"retiring a second mate is MAIN's alone"*"Report a second mate's signal wake from the status lines that wake newly presents"*"A second mate's stale wake is a liveness event: report it even when it presents no new status lines."*) ;;
     *) fail "branch prompt lost the second-mate relay, signal-span, or stale-liveness rule" ;;
+  esac
+  # The away posture applies the captain's standing preferences: read fresh at
+  # a decision, deciding only what they explicitly delegate, through the same
+  # guarded path a pre-answered decision uses, labelled for the return brief,
+  # and never past a boundary the words themselves cannot cross.
+  case "$out_a" in
+    *"the \`STANDING PREFERENCES\` paragraph of each away wake's tail names the home's preference files"*"Read them fresh before you hold any decision for the return"*"a missing or unreadable file means no preferences, never a reason to stop supervising."*"decide it through \`bin/fm-send.sh --resolve-key\`, as a pre-answered decision is answered, and open that outcome's summary with \"per your standing preferences:\""*"A preference answers decisions and nothing else: it never authorizes a merge, a spawn, a discard, a credential, or any destructive, irreversible, or security-sensitive action"*"decide only what a preference plainly delegates"*"refused whatever the words or preferences say."*) ;;
+    *) fail "branch prompt lost the standing-preferences rule or one of its boundaries" ;;
   esac
   pass "branch prompt is byte-stable across homes, cwd, timezone, and time, above the cache floor"
 }

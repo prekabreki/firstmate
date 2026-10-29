@@ -1100,7 +1100,7 @@ handle_wake() {  # <reason-lines>
   rm -f "$WAKE_FILE"
   rc=0
   printf '%s\n' "$reason" \
-    | (umask 077; exec node "$SCRIPT_DIR/fm-branch-dispatch.mjs" wake-prompt "$@" > "$WAKE_FILE" 2>/dev/null) || rc=$?
+    | (umask 077; export FM_HOME; exec node "$SCRIPT_DIR/fm-branch-dispatch.mjs" wake-prompt "$@" > "$WAKE_FILE" 2>/dev/null) || rc=$?
   if [ "$rc" -ne 0 ]; then
     [ -z "$readback" ] || rm -f "$readback"
     rm -f "$TURN_FILE" "$mirror"

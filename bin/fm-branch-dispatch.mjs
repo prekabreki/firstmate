@@ -34,10 +34,13 @@
 //     feed adds nothing, and a feed that cannot be read exits 3 with no
 //     prompt, so the host hands the wake to main. --away appends the away tail with the
 //     record read-back from <path>; a missing or empty read-back prints the
-//     tail's fixed unavailable notice instead.
+//     tail's fixed unavailable notice instead. The away tail also names the
+//     captain-preference files read from the data directory below; a missing
+//     or unreadable file is no preferences.
 //
 // The state directory is FM_STATE_OVERRIDE, else $FM_HOME/state, else the
-// repository's own state/. Exit 0 on success, 2 on invalid use, 3 when a
+// repository's own state/; the data directory is FM_DATA_OVERRIDE, else
+// $FM_HOME/data, else the repository's own data/. Exit 0 on success, 2 on invalid use, 3 when a
 // wake-prompt --mirror-file cannot be read.
 
 import { readFileSync } from "node:fs";
@@ -58,6 +61,12 @@ function stateDir() {
   if (process.env.FM_STATE_OVERRIDE) return process.env.FM_STATE_OVERRIDE;
   const home = process.env.FM_HOME || process.env.FM_ROOT_OVERRIDE || root;
   return path.join(home, "state");
+}
+
+function dataDir() {
+  if (process.env.FM_DATA_OVERRIDE) return process.env.FM_DATA_OVERRIDE;
+  const home = process.env.FM_HOME || process.env.FM_ROOT_OVERRIDE || root;
+  return path.join(home, "data");
 }
 
 function scopeLines(scope, heartbeat) {
@@ -124,7 +133,9 @@ if (command === "scope") {
       process.exit(3);
     }
   }
-  const tail = away ? dispatch.awayPostureTailFor(readOptional(readbackFile)) : "";
+  const tail = away
+    ? dispatch.awayPostureTailFor(readOptional(readbackFile), dispatch.standingPreferencesFor(dataDir()))
+    : "";
   process.stdout.write(`${dispatch.branchWakePrompt(message, report, tail, mirror)}\n`);
 } else {
   usage();

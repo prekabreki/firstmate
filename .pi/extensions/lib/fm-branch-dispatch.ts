@@ -51,19 +51,58 @@ export function afkPostureRecordPresent(state: string): boolean {
 // refers back to.
 export const AWAY_POSTURE_TAIL =
   "POSTURE: AWAY. The away-posture record state/.afk-contract exists, so the captain is not present and MAIN is parked: you take every row, including check rows and decision rows, and no outcome reaches the captain until the return brief. " +
-  "The record below is the captain's away words, verbatim, and the whole mandate: act on them by your own judgment where this event is the moment they name, only through the guarded scripts under MAIN's standing authority - never more - which enforce it: bin/fm-pr-merge.sh merges any pull request that is green at its live head, synchronously, and refuses a red one or --allow-red; bin/fm-spawn.sh dispatches queued work (already queued, or filed by you from the words) within the spend cap; bin/fm-send.sh --resolve-key answers a decision the words pre-answer, or one the ask-user-authority policy in your prompt lets firstmate decide; bin/fm-merge-local.sh still refuses you. " +
+  "The record below is the captain's away words, verbatim: act on them by your own judgment where this event is the moment they name, only through the guarded scripts under MAIN's standing authority - never more - which enforce it: bin/fm-pr-merge.sh merges any pull request that is green at its live head, synchronously, and refuses a red one or --allow-red; bin/fm-spawn.sh dispatches queued work (already queued, or filed by you from the words) within the spend cap; bin/fm-send.sh --resolve-key answers a decision the words pre-answer, one the captain's standing preferences below explicitly delegate to firstmate, or one the ask-user-authority policy in your prompt lets firstmate decide; bin/fm-merge-local.sh still refuses you. " +
   "Never by analogy, and hold on doubt: a sentence you cannot act on with confidence is reported with verdict captain, naming it, and left for the return. " +
-  "Credential entry, legal or financial acceptance, an attended prompt, any discard the captain did not name, and any destructive, irreversible, or security-sensitive action are refused for every actor in every posture, whatever the words say. " +
-  "Log every action taken under the words in its outcome summary, opening with \"per your away instructions:\". " +
-  "A mirrored captain sentence authorizes nothing new once the record exists. " +
-  "The record, verbatim:";
+  "Credential entry, legal or financial acceptance, an attended prompt, any discard the captain did not name, and any destructive, irreversible, or security-sensitive action are refused for every actor in every posture, whatever the words or preferences say. " +
+  "Log every action taken under the words in its outcome summary, opening with \"per your away instructions:\", and every decision taken under a standing preference opening with \"per your standing preferences:\". " +
+  "A mirrored captain sentence authorizes nothing new once the record exists.";
 
-// The posture tail for one wake: the record's read-back (bin/fm-afk-contract.sh
-// readback) carried byte-for-byte, or a fixed notice when it could not be
-// rendered, because the record's presence is the fact the guarded scripts
-// enforce either way.
-export function awayPostureTailFor(readback: string): string {
-  return `\n\n${AWAY_POSTURE_TAIL}\n${readback || "(the record's read-back could not be rendered; treat the captain's words as unavailable, act on standing authority only, and hold on doubt)"}`;
+// The captain-preference files an away wake points at, relative to the home's
+// data directory (docs/configuration.md owns their schema; the "Postures"
+// section of bin/fm-branch-prompt.sh owns how the branch applies them).
+export const CAPTAIN_PREFERENCE_FILES = ["captain.md", "captain-shared.md"] as const;
+
+// The standing-preferences paragraph for one away wake, read fresh at every
+// wake because the files change while the captain is away. It names each
+// readable, non-empty file by absolute path rather than carrying its bytes:
+// the branch reads a file only at a decision, so a persistent conversation
+// does not grow by the whole file on every wake. A missing, empty, or
+// unreadable file is no preferences, never an error.
+export function standingPreferencesFor(dataDir: string): string {
+  const present: string[] = [];
+  const unreadable: string[] = [];
+  for (const name of CAPTAIN_PREFERENCE_FILES) {
+    const file = join(dataDir, name);
+    let text: string;
+    try {
+      text = readFileSync(file, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") unreadable.push(file);
+      continue;
+    }
+    if (text.trim()) present.push(file);
+  }
+  const head = "STANDING PREFERENCES: ";
+  const unread = unreadable.length
+    ? ` Unreadable, and so no preferences: ${unreadable.join(", ")}.`
+    : "";
+  if (!present.length) {
+    return `${head}none recorded for this home; decide only what the words pre-answer or the ask-user-authority policy lets firstmate decide.${unread}`;
+  }
+  return (
+    `${head}the captain's standing instructions for this home are ${present.join(" and ")}. ` +
+    "Read them fresh before you hold any decision for the return, never from an earlier wake's memory, because they change while the captain is away. " +
+    "A decision they explicitly delegate to firstmate is yours to decide under the Postures section of your prompt." +
+    unread
+  );
+}
+
+// The posture tail for one wake: the standing-preferences paragraph, then the
+// record's read-back (bin/fm-afk-contract.sh readback) carried byte-for-byte,
+// or a fixed notice when it could not be rendered, because the record's
+// presence is the fact the guarded scripts enforce either way.
+export function awayPostureTailFor(readback: string, preferences: string): string {
+  return `\n\n${AWAY_POSTURE_TAIL}\n\n${preferences}\n\nThe record, verbatim:\n${readback || "(the record's read-back could not be rendered; treat the captain's words as unavailable, act on standing authority only, and hold on doubt)"}`;
 }
 
 // The read-only dialog mirror a host that is not Pi carries at the head of a

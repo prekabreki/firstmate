@@ -2024,7 +2024,7 @@ const prelude = process.env.DRIVER_PRELUDE;
 await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, sentToMain, mainEntries, outcomeScript, defaultSessionCtx, home, realRoot, bus, approvedProject }; })()`);
 const { fire, dispatch, settle, sentToMain, mainEntries, outcomeScript, defaultSessionCtx, home, realRoot, bus, approvedProject } = globalThis.__t;
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const contract = (args) => {
   const result = spawnSync("bash", [`${realRoot}/bin/fm-afk-contract.sh`, ...args], {
@@ -2217,6 +2217,9 @@ writeFileSync(
   `${home}/state/.wake-queue`,
   "1\t1\tsignal\tbranch-driver.status\tsignal: away wake\n2\t2\tcheck\tmain-only\tcheck: task-d.check.sh: PR merged\n3\t3\theartbeat\theartbeat\theartbeat\n",
 );
+// The captain's standing preferences, which the away tail must point at.
+mkdirSync(`${home}/data`, { recursive: true });
+writeFileSync(`${home}/data/captain.md`, "Story calls are firstmate's to decide.\n");
 globalThis.__fmOnBranchPrompt = () => new Promise((resolve) => { finishPrompt = resolve; });
 const awayOffer = {
   message: "signal: away wake",
@@ -2241,6 +2244,8 @@ const readback = contract(["readback"]);
 if (!readback.endsWith("    merge task-d when green, then cut the prerelease\n    \n")) throw new Error(`the read-back lost the captain's words or their trailing blank line: ${JSON.stringify(readback)}`);
 if (!awayPrompt.includes("act on them by your own judgment")) throw new Error(`the away tail lost the words-execution rule: ${awayPrompt}`);
 if (awayPrompt.includes("does not execute them")) throw new Error(`the away tail still calls the words inert: ${awayPrompt}`);
+if (!awayPrompt.includes(`\n\nSTANDING PREFERENCES: the captain's standing instructions for this home are ${home}/data/captain.md. `)) throw new Error(`the away tail does not point at the home's standing preferences: ${awayPrompt}`);
+if (systemPrompt.includes("Story calls are")) throw new Error("the standing preferences leaked into the prefix");
 if (!awayPrompt.endsWith(`The record, verbatim:\n${readback}`)) throw new Error(`the tail does not end with the record's read-back verbatim, trailing whitespace included: ${JSON.stringify(awayPrompt)}`);
 const snapshot = readFileSync(`${home}/state/.branch-eligible-rows`, "utf8").trim().split("\n").join(",");
 if (snapshot !== "1,2,3") throw new Error(`the away wake claimed rows ${snapshot}, not every row`);
