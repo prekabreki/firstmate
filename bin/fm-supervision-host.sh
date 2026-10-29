@@ -1093,7 +1093,7 @@ handle_wake() {  # <reason-lines>
   fi
   set -- --report "the bin/fm-branch-report.sh command"
   if [ "$TURN_POSTURE" = away ]; then
-    set -- "$@" --away ${readback:+--readback-file "$readback"}
+    set -- "$@" --away ${readback:+--readback-file "$readback"} --data-dir "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
   else
     set -- "$@" --mirror-file "$mirror"
   fi

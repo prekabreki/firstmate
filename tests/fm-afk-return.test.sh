@@ -413,6 +413,11 @@ test_return_brief_composes_from_record_store_and_held_set() {
   outcome_in "$dir" append --task prerelease --verdict captain \
     --summary 'per your away instructions: filed and dispatched the prerelease cut; it needs your review' --wake 'signal: prerelease.status' >/dev/null \
     || fail "could not seed the escalated words-action outcome row"
+  # A decision taken under the captain's standing preferences, not the words:
+  # the brief lists it under its own label so the captain can tell the two apart.
+  outcome_in "$dir" append --task story-calls --verdict routine \
+    --summary 'per your standing preferences: answered the plot-order decision ("Story calls ... are firstmate'"'"'s to decide")' --wake 'signal: story-calls.status' >/dev/null \
+    || fail "could not seed the standing-preference decision row"
   outcome_in "$dir" append --task still-building --verdict routine --silent true \
     --summary 'per your away instructions: the check 1 worker is still building. Nothing new has happened; no action was taken.' >/dev/null \
     || fail "could not seed the silent no-change outcome row"
@@ -438,7 +443,7 @@ test_return_brief_composes_from_record_store_and_held_set() {
   [ "$health_line" -lt "$words_line" ] && [ "$words_line" -lt "$waiting_line" ] && [ "$waiting_line" -lt "$failed_line" ] \
     || fail "the brief sections are out of order (health $health_line, instructions $words_line, waiting $waiting_line, failed $failed_line)"
   assert_contains "$out" $'  your words at entry:\n    merge the windows fix when green, then cut a prerelease\n    if the install deadlocks abort the competing run\n' "the captain's verbatim words were not carried into the brief"
-  assert_contains "$out" $'  the away session acted on them:\n    - fix-windows: per your away instructions: merged the windows fix PR once checks went green\n    - prerelease: per your away instructions: filed and dispatched the prerelease cut; it needs your review\nWaiting on you:\n' "the session's account listed something other than exactly the two actions taken under the words"
+  assert_contains "$out" $'  the away session acted on them:\n    - fix-windows: per your away instructions: merged the windows fix PR once checks went green\n    - prerelease: per your away instructions: filed and dispatched the prerelease cut; it needs your review\n  decided under your standing preferences, not your away words:\n    - story-calls: per your standing preferences: answered the plot-order decision ("Story calls ... are firstmate\'s to decide")\nWaiting on you:\n' "the session's account listed something other than exactly the two actions taken under the words, then the one decision taken under the standing preferences"
   assert_not_contains "$out" $'acted on them:\n    - other:' "an outcome that did not cite the words was listed as an action under them"
   assert_not_contains "$out" $'acted on them:\n    - held-note:' "a summary opening with the marker's words but no colon was listed as an action under them"
   assert_not_contains "$out" 'still building' "the return brief rendered a silent routine outcome"
@@ -451,9 +456,9 @@ test_return_brief_composes_from_record_store_and_held_set() {
   assert_contains "$out" 'fix-windows [key=token] still blocked, firstmate remediates before ordinary work' "the blocker sharing a task with a captain outcome was exempted"
   assert_contains "$out" 'other [key=dep] still blocked, firstmate remediates before ordinary work' "the unreached blocker was not listed as could-not-fix"
   assert_contains "$out" 'dead: failed: the reproduction never compiled' "the failed task was not listed"
-  assert_contains "$out" '4 routine outcome(s) recorded' "the routine outcome count was not reported"
+  assert_contains "$out" '5 routine outcome(s) recorded' "the routine outcome count was not reported"
   assert_contains "$out" 'other: resent the steer; worker resumed' "the routine outcome was not listed"
-  assert_contains "$out" 'Cost: 6 supervision outcome(s) recorded (4 routine, 2 captain); 3 task(s) live at return.' "the cost line is wrong"
+  assert_contains "$out" 'Cost: 7 supervision outcome(s) recorded (5 routine, 2 captain); 3 task(s) live at return.' "the cost line is wrong"
   assert_contains "$out" 'firstmate-actionable blocker: other [key=dep]' "the unreached blocker did not gate"
   assert_contains "$out" 'firstmate-actionable blocker: fix-windows [key=token]' "a captain outcome incorrectly exempted an open blocker"
   grep -F "$(printf 'contract\t')" "$gate" >/dev/null || fail "the gate did not retain the posture-record window"

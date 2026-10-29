@@ -367,7 +367,9 @@ A new one opens in two cases:
 - Every `FM_SUPERVISION_HOST_ROTATE_TURNS` turns, because each wake adds history and the per-wake cost grows with it.
 
 Nothing captain-facing rides on that conversation, because the outcome store carries every result.
-The captain context it acts on is the [dialog mirror](#the-dialog-mirror) at the head of every attended wake and the away record's read-back at the tail of every away wake.
+The captain context it acts on is the [dialog mirror](#the-dialog-mirror) at the head of every attended wake and, at the tail of every away wake, the away record's read-back plus a pointer to the home's captain-preference files.
+The host checks those files fresh at each away wake, so a preference edited while the captain is away applies at the next wake, and a missing or unreadable file means no preferences rather than a failed wake.
+The away mandate is therefore the captain's words plus their standing preferences, which decide only the decisions they explicitly delegate to firstmate; `bin/fm-branch-prompt.sh` "Postures" owns how the engine applies them.
 
 ### Where engine cost is read
 

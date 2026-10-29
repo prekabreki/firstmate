@@ -578,8 +578,9 @@ A leftover `state/.afk` flag declines nothing.
 
   Parking is a cost and chat-cleanliness measure.
   Supervision continuity is the safety property, and the return brief's health section reads any gap.
-- The wake message ends with a fixed `POSTURE: AWAY` tail plus the record's read-back verbatim (`bin/fm-afk-contract.sh readback`).
+- The wake message ends with a fixed `POSTURE: AWAY` tail, a `STANDING PREFERENCES` paragraph, and the record's read-back verbatim (`bin/fm-afk-contract.sh readback`).
   The branch therefore has the captain's away words, the spend cap, the expected return, and the reach line in front of it at execution time, without any prefix change.
+  The paragraph names the home's captain-preference files (`data/captain.md`, and `data/captain-shared.md` when present) by path, checked fresh at every wake, or says there are none; it points rather than carrying their bytes, so the branch's persistent conversation does not grow by the whole file on every wake, and a missing or unreadable file means no preferences.
 - Captain-verdict outcomes accumulate unprocessed in the outcome store.
   Their visible entries still persist, but no processing turn opens on the parked main.
   The request is re-checked against the record immediately before it would open and at every run boundary, so a request pending when the record appears is cancelled rather than delivered.
@@ -598,15 +599,16 @@ A leftover `state/.afk` flag declines nothing.
 It does so only while `bin/fm-afk-contract.sh validate` succeeds on a complete, readable, live away record (`mode` is not quiet).
 An archived, incomplete, invalid, or quiet record restores the attended refusal byte for byte.
 
-The captain's away words are the whole mandate:
+The captain's away words are the whole mandate for action:
 
 - The branch reads them at the tail.
 - It decides by its own judgment whether the event in front of it is the moment they name.
 - It acts on them only through the guarded scripts, never by analogy.
 - It holds with verdict captain on doubt.
 
+The captain's standing preferences still apply while away, but only to decisions: one they explicitly delegate to firstmate is decided through `bin/fm-send.sh --resolve-key`, and they never authorize a merge, spawn, discard, credential, or destructive, irreversible, or security-sensitive action.
 `bin/fm-branch-prompt.sh` "Postures" owns those execution rules.
-It requires every action taken under the words to open its outcome summary with "per your away instructions:".
+It requires every action taken under the words to open its outcome summary with "per your away instructions:", and every decision taken under a standing preference with "per your standing preferences:", which the return brief lists under its own label.
 
 Each relocated script keeps its own gate, enforcing exactly what a script can check without reading words:
 
@@ -614,7 +616,7 @@ Each relocated script keeps its own gate, enforcing exactly what a script can ch
 | --- | --- |
 | `bin/fm-pr-merge.sh` | Merges any pull request green at its live head, synchronously, under the record lock, and refuses `--allow-red`, `--allow-missing`, and `--allow-no-pipeline` while away, so the green gate is absolute in this posture; which pull request the words meant is the branch's reading. |
 | `bin/fm-spawn.sh` | Dispatches only queued work whose blockers cleared - already queued, or filed by the branch because the words explicitly call for it; refuses a fresh ordinary spawn for either actor once the home holds as many ordinary task records as the record's spend cap (relaunches and secondmates exempt). |
-| `bin/fm-send.sh --resolve-key` | Answers a decision the words pre-answer, or one `ask-user-authority`'s judgment (carried verbatim in the branch prompt) lets firstmate decide. |
+| `bin/fm-send.sh --resolve-key` | Answers a decision the words pre-answer, one the captain's standing preferences explicitly delegate to firstmate, or one `ask-user-authority`'s judgment (carried verbatim in the branch prompt) lets firstmate decide. |
 | `bin/fm-merge-local.sh` | Never relocated. |
 
 The merge-authority record and the outcome row's summary are the audit trail.

@@ -19,7 +19,9 @@
 # superseded in-session mandates - followed by the away session's account of
 # every visible action it took under them (each non-silent outcome-store row
 # from the window whose summary opens with the "per your away instructions:"
-# marker the branch prompt in bin/fm-branch-prompt.sh requires), then what is
+# marker the branch prompt in bin/fm-branch-prompt.sh requires) and of every
+# decision it took under the captain's standing preferences (the "per your
+# standing preferences:" marker, listed only when there is one), then what is
 # waiting on the captain,
 # then what was tried and failed or could not be fixed (a supervision-host
 # latch or engine errors inside the window lead it), then landed work whose
@@ -478,6 +480,10 @@ strip_axi_help() {
 # taken under the captain's words to open its outcome summary with this marker
 # exactly; the brief's account includes visible rows from the window that carry it.
 AWAY_ACTION_MARKER='per your away instructions:'
+# The same prompt section requires every decision taken under the captain's
+# standing preferences (data/captain.md, data/captain-shared.md) to open its
+# summary with this marker; the brief lists those rows under their own label.
+PREFERENCE_DECISION_MARKER='per your standing preferences:'
 
 MANDATE_COUNT=0
 HELD_READ_FAILED=0
@@ -510,6 +516,13 @@ render_words_account() {  # the away session's account of what it did under the 
   else
     printf '  the away session took no action under them.\n'
   fi
+}
+
+render_preferences_account() {  # decisions taken under the standing preferences, only when any were
+  local rows
+  rows=$(printf '%s\n' "$STORE_ROWS" | awk -F '\t' -v marker="$PREFERENCE_DECISION_MARKER" '
+    $6 != "true" && substr($5, 1, length(marker)) == marker { printf "    - %s: %s\n", $2, $5 }')
+  [ -z "$rows" ] || printf '  decided under your standing preferences, not your away words:\n%s\n' "$rows"
 }
 
 # Live task records whose recorded PR the merge outcome path already marked
@@ -582,6 +595,7 @@ render_return_brief() {  # <evidence-file> <blockers-file> <since-epoch> <drain-
   else
     printf '  (no away-posture record for this window; legacy away flag only)\n'
   fi
+  render_preferences_account
 
   # 3. waiting on the captain.
   printf 'Waiting on you:\n'

@@ -157,6 +157,29 @@ test_dispatch_entry_scopes_rows_and_renders_the_away_tail() {
   assert_contains "$out" "finish with the bin/fm-branch-report.sh command." "the wake prompt must name the host's report surface"
   assert_contains "$out" "POSTURE: AWAY." "an away wake prompt must carry the posture tail"
   assert_contains "$out" "    merge nothing" "the away tail must carry the record's read-back verbatim"
+
+  # The captain's standing preferences reach the away tail by path, read at
+  # every wake: none, then the home's files as they appear, then an explicit
+  # --data-dir, while the read-back stays last and an attended wake gains nothing.
+  assert_contains "$out" "STANDING PREFERENCES: none recorded for this home;" "a home with no preference files must say there are none"
+  case "$out" in *"The record, verbatim:"$'\n'"Away posture (recorded):"*"    merge nothing") ;;
+    *) fail "the away tail must still end with the record's read-back: $out" ;; esac
+  mkdir -p "$home/data"
+  printf 'Story calls are firstmate'"'"'s to decide.\n' > "$home/data/captain.md"
+  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback")
+  assert_contains "$out" "STANDING PREFERENCES: the captain's standing instructions for this home are $home/data/captain.md. Read them fresh" "the away tail must name the home's captain.md as read at this wake"
+  assert_not_contains "$out" "captain-shared.md" "an absent shared preference file must not be named"
+  assert_not_contains "$out" "Story calls are" "the tail names the file rather than carrying its bytes"
+  printf 'Shared call.\n' > "$home/data/captain-shared.md"
+  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback")
+  assert_contains "$out" "are $home/data/captain.md and $home/data/captain-shared.md." "a present shared preference file must be named too"
+  mkdir -p "$home/other-data/captain.md"
+  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback" --data-dir "$home/other-data")
+  assert_contains "$out" "STANDING PREFERENCES: none recorded for this home;" "an unreadable preference file must degrade to no preferences"
+  assert_contains "$out" "Unreadable, and so no preferences: $home/other-data/captain.md." "an unreadable preference file must be named as unreadable"
+  assert_contains "$out" "    merge nothing" "an unreadable preference file must not cost the wake its read-back"
+  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --mirror-file /dev/null)
+  assert_not_contains "$out" "STANDING PREFERENCES" "an attended wake prompt must carry no preference pointer"
   pass "dispatch entry: the host reads branch eligibility, the offer rule, and the wake prompt from the Pi branch's own owner"
 }
 

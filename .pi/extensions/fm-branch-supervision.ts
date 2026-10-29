@@ -120,6 +120,7 @@ import {
   FM_BRANCH_DISPATCH_EVENT,
   releaseEligibleRowsSnapshot,
   scopeForUnreadWake,
+  standingPreferencesFor,
   writeEligibleRowsSnapshot,
   type BranchDispatchOffer,
 } from "./lib/fm-branch-dispatch.ts";
@@ -142,6 +143,7 @@ const fmHome = process.env.FM_HOME || process.env.FM_ROOT_OVERRIDE || root;
 const fmRoot = process.env.FM_ROOT_OVERRIDE || root;
 const state = process.env.FM_STATE_OVERRIDE || `${fmHome}/state`;
 const config = process.env.FM_CONFIG_OVERRIDE || `${fmHome}/config`;
+const dataDir = process.env.FM_DATA_OVERRIDE || `${fmHome}/data`;
 const sessionsDir = join(state, "branch-session");
 const sessionPointer = join(state, ".branch-session");
 const mirrorCursorFile = join(state, ".branch-mirror-cursor");
@@ -1486,7 +1488,7 @@ ${context.command}
   // The away posture at the tail of a wake: the record's own read-back (the
   // captain's words verbatim, the spend cap, expected return, and reach line)
   // carried byte-for-byte, trailing blank lines included, plus the standing
-  // rule for acting under it. Read per wake so the byte-stable prefix never
+  // rule for acting under it and the captain-preference files read fresh. Read per wake so the byte-stable prefix never
   // carries posture; a read-back that cannot be rendered still names the
   // posture, because the record's presence is the fact the guarded scripts
   // enforce either way.
@@ -1498,7 +1500,7 @@ ${context.command}
     } catch {
       readback = "";
     }
-    return awayPostureTailFor(readback);
+    return awayPostureTailFor(readback, standingPreferencesFor(dataDir));
   }
 
   function enqueueWake(message: string, acceptedGeneration: number, recoveryProbe = false, acceptedAwayOnly = false): Promise<void> {
