@@ -60,6 +60,17 @@ shift
 exec "$@"
 SH
   chmod +x "$fakebin/timeout"
+  # fm-spawn probes the resolved opencode for its major version, so a fixture
+  # stub keeps the probe off any opencode installed on the host. It reports the
+  # verified OpenCode 1 line unless a case sets FM_FAKE_OPENCODE_VERSION.
+  cat > "$fakebin/opencode" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf '%s\n' "${FM_FAKE_OPENCODE_VERSION:-1.18.35}"
+fi
+exit 0
+SH
+  chmod +x "$fakebin/opencode"
   fm_test_spawn_home "$home"
   printf '%s\n' '- project [direct-PR] - fixture (added 2026-07-01)' > "$home/data/projects.md"
   fm_git_worktree "$proj" "$wt" "wt-$name"
@@ -119,7 +130,7 @@ test_executor_spawn_records_meta_branch_and_poll() {
   cmp -s "$HOME_DIR/data/$id/brief.md" "$HOME_DIR/data/$id/launch-brief.md" \
     || fail "launch-brief.md must be the executor brief verbatim (no worker role or intent overlay)"
   launch=$(launch_line "$LAUNCH_LOG")
-  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='$HOME_DIR/state/$id.git-hooks'; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' opencode run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
+  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' '$FAKEBIN_DIR/opencode' run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
   [ "$launch" = "$expected" ] || fail "opencode executor launch mismatch"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   pass "executor spawn: meta, pre-created branch at its base, published poll, excluded PR body, verbatim launch brief"
 }
@@ -156,7 +167,7 @@ test_headless_templates_per_adapter() {
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 9 --yolo off --harness opencode --model 'vendor/model' --effort high); rc=$?
   expect_code 0 "$rc" "opencode executor spawn with a model should succeed: $out"
   launch=$(launch_line "$LAUNCH_LOG")
-  assert_contains "$launch" "opencode run --model 'vendor/model' \"\$(" "opencode threads the model"
+  assert_contains "$launch" "'$FAKEBIN_DIR/opencode' run --model 'vendor/model' \"\$(" "opencode threads the model on the probed binary"
   assert_not_contains "$launch" 'high' "opencode omits the unmapped effort axis from the launch"
   assert_grep 'effort=high' "$HOME_DIR/state/$id.meta" "the omitted effort is still recorded"
   pass "headless templates: claude -p, codex exec, opencode run, each with the exit marker appended"
@@ -210,6 +221,41 @@ test_executor_refusals() {
   pass "executor refusals: mode, kind conflicts, issue, yolo, non-headless adapters, batch, relaunch --issue"
 }
 
+# Postures and surfaces the executor's headless forms were never verified on
+# refuse before any record or branch exists: a Codex posture other than bypass,
+# a detected OpenCode 2, a backend whose pane shell is unverified, a registered
+# forge other than none, and the ship-only --upstream-consent route.
+test_executor_refuses_unverified_postures() {
+  local rec id out rc mode
+  id=exec-unv-g1
+  rec=$(make_case unverified); read_case "$rec"
+  executor_brief "$HOME_DIR" "$id" 5
+  for mode in codex-approval-mode:approve-for-me codex-permission-mode:restricted; do
+    printf '%s\n' "${mode#*:}" > "$HOME_DIR/config/${mode%%:*}"
+    out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 5 --yolo off --harness codex); rc=$?
+    expect_code 1 "$rc" "codex under ${mode%%:*}=${mode#*:} must refuse for --executor"
+    assert_contains "$out" "verified bypass form of codex exec" "the codex refusal names the verified form"
+    rm -f "$HOME_DIR/config/${mode%%:*}"
+  done
+  out=$(FM_FAKE_OPENCODE_VERSION=2.0.21 run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 5 --yolo off --harness opencode); rc=$?
+  expect_code 1 "$rc" "opencode 2 must refuse for --executor"
+  assert_contains "$out" "verified only on OpenCode 1" "the opencode refusal names the verified line"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 5 --yolo off --upstream-consent github.com/owner/repo --harness opencode); rc=$?
+  expect_code 1 "$rc" "--upstream-consent must refuse for --executor"
+  assert_contains "$out" "--upstream-consent applies only to ship spawns" "the consent refusal names the ship-only route"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 5 --yolo off --backend paseo --harness opencode); rc=$?
+  expect_code 1 "$rc" "backend=paseo must refuse for --executor"
+  assert_contains "$out" "backend=paseo does not support --executor" "the backend refusal names the backend"
+  printf '%s\n' '- project [direct-PR forge=external] - fixture (added 2026-07-01)' > "$HOME_DIR/data/projects.md"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 5 --yolo off --harness opencode); rc=$?
+  expect_code 1 "$rc" "a forge=external project must refuse for --executor"
+  assert_contains "$out" "registered forge=external" "the forge refusal names the registered forge"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "a refused executor spawn must publish no record"
+  [ "$(git -C "$WT_DIR" branch --show-current)" != "fm/$id" ] || fail "a refused executor spawn must create no branch"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a refused executor spawn must launch nothing: $(cat "$LAUNCH_LOG")"
+  pass "executor refusals: unverified Codex posture, OpenCode 2, unverified backend, non-default forge, upstream consent"
+}
+
 test_brief_and_spawn_kind_agreement() {
   local rec out rc
   rec=$(make_case agreement); read_case "$rec"
@@ -242,7 +288,7 @@ test_raw_command_receives_brief_as_final_argument() {
   expect_code 0 "$rc" "a raw executor command should launch: $out"
   assert_contains "$out" "spawned $id harness=mytool kind=executor" "the raw command's basename is recorded"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='$HOME_DIR/state/$id.git-hooks'; mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "the raw command must receive the encoded brief as its final argument, got: $launch"
   id=exec-raw-e2
   rec=$(make_case raw-placed); read_case "$rec"
@@ -250,7 +296,7 @@ test_raw_command_receives_brief_as_final_argument() {
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 11 --yolo off --harness 'mytool --brief __BRIEF__ run'); rc=$?
   expect_code 0 "$rc" "a raw command naming __BRIEF__ should launch: $out"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='$HOME_DIR/state/$id.git-hooks'; mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "a raw command that places __BRIEF__ itself must keep that placement, got: $launch"
   pass "a raw executor command receives the encoded brief last unless it places __BRIEF__ itself"
 }
@@ -434,6 +480,7 @@ SH
 test_executor_spawn_records_meta_branch_and_poll
 test_headless_templates_per_adapter
 test_executor_refusals
+test_executor_refuses_unverified_postures
 test_brief_and_spawn_kind_agreement
 test_raw_command_receives_brief_as_final_argument
 test_posture_guard
