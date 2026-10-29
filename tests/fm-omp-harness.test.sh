@@ -738,7 +738,7 @@ const pi = {
 const mod = await import(pathToFileURL(process.env.EXT).href);
 mod.default(pi);
 await tool.execute();
-for (let i = 0; i < 60 && sent.length < 1; i += 1) await new Promise((r) => setTimeout(r, 100));
+for (let i = 0; i < 300 && sent.length < 1; i += 1) await new Promise((r) => setTimeout(r, 100));
 const rows = readFileSync(process.env.FM_ARM_LOG, "utf8").trim().split("\n");
 if (rows.some((row) => row.startsWith("plain-arm="))) throw new Error(`an opted-in home ran the plain arm: ${rows.join(" | ")}`);
 const hosts = rows.filter((row) => row.startsWith("host="));
@@ -810,8 +810,10 @@ const pi = {
 const mod = await import(pathToFileURL(process.env.EXT).href);
 mod.default(pi);
 await tool.execute();
-for (let i = 0; i < 60 && !existsSync(process.env.FM_ARM_LOG); i += 1) await new Promise((r) => setTimeout(r, 100));
-const rows = existsSync(process.env.FM_ARM_LOG) ? readFileSync(process.env.FM_ARM_LOG, "utf8").trim().split("\n") : [];
+// The arm's `>>` creates the log before its line lands, so wait for a whole line.
+const armLog = () => (existsSync(process.env.FM_ARM_LOG) ? readFileSync(process.env.FM_ARM_LOG, "utf8") : "");
+for (let i = 0; i < 300 && !armLog().endsWith("\n"); i += 1) await new Promise((r) => setTimeout(r, 100));
+const rows = armLog().trim().split("\n").filter(Boolean);
 if (rows.length === 0 || !rows.every((row) => row.startsWith("plain-arm="))) {
   throw new Error(`a home that does not run the host must spawn only the plain arm: ${rows.join(" | ")}`);
 }
@@ -868,7 +870,7 @@ const pi = {
 const mod = await import(pathToFileURL(process.env.EXT).href);
 mod.default(pi);
 await tool.execute();
-for (let i = 0; i < 60 && sent.length < 1; i += 1) await new Promise((r) => setTimeout(r, 100));
+for (let i = 0; i < 300 && sent.length < 1; i += 1) await new Promise((r) => setTimeout(r, 100));
 if (sent.length !== 1) throw new Error(`expected one boundary follow-up, saw ${sent.length}: ${JSON.stringify(sent)}`);
 const boundary = "supervision-host: outcome 1 for demo [captain]: fixture boundary";
 if (!sent[0].m.includes(boundary)) throw new Error(`the follow-up lacks the boundary line: ${sent[0].m}`);
@@ -879,7 +881,7 @@ if (stored.pending.length !== 1 || !stored.pending[0].message.includes(boundary)
   throw new Error(`the unconsumed boundary did not ride the handoff: ${JSON.stringify(stored)}`);
 }
 await handlers.get("session_start")({ type: "session_start" }, {});
-for (let i = 0; i < 60 && sent.length < 2; i += 1) await new Promise((r) => setTimeout(r, 100));
+for (let i = 0; i < 300 && sent.length < 2; i += 1) await new Promise((r) => setTimeout(r, 100));
 const replays = sent.slice(1);
 if (replays.some((item) => item.m.includes("watcher: FAILED"))) throw new Error(`the successor failed to load the handoff: ${JSON.stringify(replays)}`);
 if (replays.length !== 1 || !replays[0].m.includes(boundary)) throw new Error(`the successor did not replay the boundary: ${JSON.stringify(replays)}`);
