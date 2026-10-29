@@ -1093,14 +1093,14 @@ handle_wake() {  # <reason-lines>
   fi
   set -- --report "the bin/fm-branch-report.sh command"
   if [ "$TURN_POSTURE" = away ]; then
-    set -- "$@" --away ${readback:+--readback-file "$readback"} --data-dir "${FM_DATA_OVERRIDE:-$FM_HOME/data}"
+    set -- "$@" --away ${readback:+--readback-file "$readback"}
   else
     set -- "$@" --mirror-file "$mirror"
   fi
   rm -f "$WAKE_FILE"
   rc=0
   printf '%s\n' "$reason" \
-    | (umask 077; exec node "$SCRIPT_DIR/fm-branch-dispatch.mjs" wake-prompt "$@" > "$WAKE_FILE" 2>/dev/null) || rc=$?
+    | (umask 077; export FM_HOME; exec node "$SCRIPT_DIR/fm-branch-dispatch.mjs" wake-prompt "$@" > "$WAKE_FILE" 2>/dev/null) || rc=$?
   if [ "$rc" -ne 0 ]; then
     [ -z "$readback" ] || rm -f "$readback"
     rm -f "$TURN_FILE" "$mirror"

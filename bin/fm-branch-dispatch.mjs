@@ -27,7 +27,7 @@
 //     this close at all, trigger class included), then the same five lines
 //     `scope` prints for the scan it judged. --afk judges it under the away
 //     posture.
-//   fm-branch-dispatch.mjs wake-prompt --report <surface> [--mirror-file <path>] [--away [--readback-file <path>] [--data-dir <path>]]
+//   fm-branch-dispatch.mjs wake-prompt --report <surface> [--mirror-file <path>] [--away [--readback-file <path>]]
 //     Read the watcher's wake reason from stdin and print the branch wake
 //     prompt naming <surface> as the report surface. --mirror-file puts the
 //     host's dialog-mirror feed (bin/fm-host-mirror.sh) at its head; an empty
@@ -35,8 +35,8 @@
 //     prompt, so the host hands the wake to main. --away appends the away tail with the
 //     record read-back from <path>; a missing or empty read-back prints the
 //     tail's fixed unavailable notice instead. The away tail also names the
-//     captain-preference files read from --data-dir (default: the data
-//     directory below); a missing or unreadable file is no preferences.
+//     captain-preference files read from the data directory below; a missing
+//     or unreadable file is no preferences.
 //
 // The state directory is FM_STATE_OVERRIDE, else $FM_HOME/state, else the
 // repository's own state/; the data directory is FM_DATA_OVERRIDE, else
@@ -52,7 +52,7 @@ const dispatch = await import(pathToFileURL(path.join(root, ".pi", "extensions",
 
 function usage() {
   process.stderr.write(
-    "usage: fm-branch-dispatch.mjs scope [--heartbeat] [--afk] | offer [--afk] | wake-prompt --report <surface> [--mirror-file <path>] [--away [--readback-file <path>] [--data-dir <path>]]\n",
+    "usage: fm-branch-dispatch.mjs scope [--heartbeat] [--afk] | offer [--afk] | wake-prompt --report <surface> [--mirror-file <path>] [--away [--readback-file <path>]]\n",
   );
   process.exit(2);
 }
@@ -114,14 +114,12 @@ if (command === "scope") {
   let away = false;
   let readbackFile = "";
   let mirrorFile = "";
-  let dataDirArg = "";
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--report" && index + 1 < args.length) report = args[++index];
     else if (arg === "--away") away = true;
     else if (arg === "--readback-file" && index + 1 < args.length) readbackFile = args[++index];
     else if (arg === "--mirror-file" && index + 1 < args.length) mirrorFile = args[++index];
-    else if (arg === "--data-dir" && index + 1 < args.length) dataDirArg = args[++index];
     else usage();
   }
   if (!report) usage();
@@ -136,7 +134,7 @@ if (command === "scope") {
     }
   }
   const tail = away
-    ? dispatch.awayPostureTailFor(readOptional(readbackFile), dispatch.standingPreferencesFor(dataDirArg || dataDir()))
+    ? dispatch.awayPostureTailFor(readOptional(readbackFile), dispatch.standingPreferencesFor(dataDir()))
     : "";
   process.stdout.write(`${dispatch.branchWakePrompt(message, report, tail, mirror)}\n`);
 } else {

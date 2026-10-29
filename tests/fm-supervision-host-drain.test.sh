@@ -159,8 +159,9 @@ test_dispatch_entry_scopes_rows_and_renders_the_away_tail() {
   assert_contains "$out" "    merge nothing" "the away tail must carry the record's read-back verbatim"
 
   # The captain's standing preferences reach the away tail by path, read at
-  # every wake: none, then the home's files as they appear, then an explicit
-  # --data-dir, while the read-back stays last and an attended wake gains nothing.
+  # every wake: none, then the home's files as they appear, then an
+  # FM_DATA_OVERRIDE directory, while the read-back stays last and an attended
+  # wake gains nothing.
   assert_contains "$out" "STANDING PREFERENCES: none recorded for this home;" "a home with no preference files must say there are none"
   case "$out" in *"The record, verbatim:"$'\n'"Away posture (recorded):"*"    merge nothing") ;;
     *) fail "the away tail must still end with the record's read-back: $out" ;; esac
@@ -174,7 +175,7 @@ test_dispatch_entry_scopes_rows_and_renders_the_away_tail() {
   out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback")
   assert_contains "$out" "are $home/data/captain.md and $home/data/captain-shared.md." "a present shared preference file must be named too"
   mkdir -p "$home/other-data/captain.md"
-  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback" --data-dir "$home/other-data")
+  out=$(printf 'signal: demo.status\n' | FM_HOME="$home" FM_DATA_OVERRIDE="$home/other-data" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback")
   assert_contains "$out" "STANDING PREFERENCES: none recorded for this home;" "an unreadable preference file must degrade to no preferences"
   assert_contains "$out" "Unreadable, and so no preferences: $home/other-data/captain.md." "an unreadable preference file must be named as unreadable"
   assert_contains "$out" "    merge nothing" "an unreadable preference file must not cost the wake its read-back"
