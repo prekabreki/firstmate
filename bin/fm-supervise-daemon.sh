@@ -207,6 +207,11 @@ FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 # shellcheck source=bin/fm-busy-lib.sh
 . "$FM_DAEMON_DIR/fm-busy-lib.sh"
 
+# Channel-file parsing, the bounded process-group runner, and the command:
+# channel, shared with the away-mode phone alert (bin/fm-away-notify.sh).
+# shellcheck source=bin/fm-notify-lib.sh
+. "$FM_DAEMON_DIR/fm-notify-lib.sh"
+
 # --- tunables ---------------------------------------------------------------
 # Supervisor backends this daemon knows how to inject into today. rex goes
 # through the same dispatcher primitives as herdr (bin/backends/rex.sh). zellij,
@@ -227,7 +232,6 @@ HOUSEKEEPING_TICK_DEFAULT=15
 # the normal flush path and, if that cannot confirm a submit, raises a loud wedge
 # alarm. The escape hatch makes a guard false-positive visible instead of silent.
 MAX_DEFER_SECS_DEFAULT=300
-WEDGE_ALARM_TIMEOUT_SECS_DEFAULT=10
 WEDGE_ALARM_LAST_EPOCH=0
 WEDGE_ALARM_NOTIFIER_PID=
 # Why the latest delivery attempt did not land; the wedge alarm reports it.
@@ -1036,23 +1040,17 @@ escalate_flush() {  # <state>
 # wins (a single directive); else each non-empty, non-comment line of
 # config/wedge-alarm; else "auto".
 wedge_alarm_configured_channels() {
-  local cfg line found=
+  local channels
   if [ -n "${FM_WEDGE_ALARM_CHANNEL:-}" ]; then
     printf '%s\n' "$FM_WEDGE_ALARM_CHANNEL"
     return 0
   fi
-  cfg="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/wedge-alarm"
-  if [ -f "$cfg" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      [ -n "$line" ] || continue
-      case "$line" in '#'*) continue ;; esac
-      printf '%s\n' "$line"
-      found=1
-    done < "$cfg"
+  channels=$(fm_notify_directives "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/wedge-alarm")
+  if [ -n "$channels" ]; then
+    printf '%s\n' "$channels"
+  else
+    printf 'auto\n'
   fi
-  [ -n "$found" ] || printf 'auto\n'
 }
 
 # Resolve the platform's default OS-level channel for `auto`. macOS reaches the
@@ -1067,47 +1065,22 @@ wedge_alarm_platform_default() {
 }
 
 wedge_alarm_run_bounded() {
-  local channel=$1 timeout monitor_was_on=0 pid start elapsed rc
+  local channel=$1 timeout rc
   shift
-  timeout=${FM_WEDGE_ALARM_TIMEOUT_SECS:-$WEDGE_ALARM_TIMEOUT_SECS_DEFAULT}
-  case "$timeout" in
-    ''|*[!0-9]*) timeout=$WEDGE_ALARM_TIMEOUT_SECS_DEFAULT ;;
-    *) [ "$timeout" -gt 0 ] 2>/dev/null || timeout=$WEDGE_ALARM_TIMEOUT_SECS_DEFAULT ;;
+  timeout=$(fm_notify_timeout "${FM_WEDGE_ALARM_TIMEOUT_SECS:-}")
+  fm_notify_run_bounded "$timeout" WEDGE_ALARM_NOTIFIER_PID "$@"
+  rc=$?
+  case "$FM_NOTIFY_BOUND" in
+    timeout) log "wedge alarm: ${channel} notifier timed out (limit ${timeout}s)" ;;
+    no-watchdog) log "wedge alarm: ${channel} notifier skipped because its watchdog could not start" ;;
   esac
-  case $- in *m*) monitor_was_on=1 ;; esac
-  set -m 2>/dev/null || true
-  case $- in
-    *m*) ;;
-    *) log "wedge alarm: ${channel} notifier skipped because its watchdog could not start"; return 125 ;;
-  esac
-  "$@" &
-  pid=$!
-  WEDGE_ALARM_NOTIFIER_PID=$pid
-  start=$SECONDS
-  while kill -0 "-$pid" 2>/dev/null; do
-    elapsed=$((SECONDS - start))
-    if [ "$elapsed" -ge "$timeout" ]; then
-      wedge_alarm_stop_active_notifier
-      [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true
-      log "wedge alarm: ${channel} notifier timed out after ${elapsed}s (limit ${timeout}s)"
-      return 124
-    fi
-    sleep 0.1
-  done
-  if wait "$pid"; then rc=0; else rc=$?; fi
-  WEDGE_ALARM_NOTIFIER_PID=
-  [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true
   return "$rc"
 }
 
 wedge_alarm_stop_active_notifier() {
   local pid=${WEDGE_ALARM_NOTIFIER_PID:-}
-  [ -n "$pid" ] || return 0
   WEDGE_ALARM_NOTIFIER_PID=
-  kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
-  sleep 0.2
-  kill -KILL "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
+  fm_notify_stop_group "$pid"
 }
 
 # The single execution seam for every configured notifier channel.
@@ -1218,8 +1191,8 @@ wedge_alarm_via_command() {  # <cmd> <summary>
     return $?
   fi
   [ -n "$cmd" ] || { log "wedge alarm: empty command: channel; nothing to run"; return 1; }
-  wedge_alarm_run_bounded command sh -c "$cmd" fm-wedge-alarm "$summary" \
-    <<< "$summary" >/dev/null 2>&1
+  wedge_alarm_run_bounded command fm_notify_command "$cmd" fm-wedge-alarm "$summary" \
+    >/dev/null 2>&1
   rc=$?
   [ "$rc" -eq 0 ] && return 0
   log "wedge alarm: command channel exited $rc (command redacted)"

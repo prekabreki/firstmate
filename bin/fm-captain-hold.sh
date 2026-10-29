@@ -56,6 +56,10 @@
 # `--until` records the captain's own deferral date through `tasks-axi hold
 # --until`, so a "revisit later" answer is stored as a date instead of a live
 # card.
+# A new hold set outside the supervision branch while the captain is away also
+# runs bin/fm-away-notify.sh send once (a repeated active hold and the
+# captain's own --until deferral do not); that script owns whether an alert is
+# sent, and its outcome never changes `hold`'s.
 #
 # `answer` records the captain's exact words and resolves the call in the same
 # act. It requires a non-empty captain decision file of at most 8192 bytes and
@@ -1155,6 +1159,10 @@ command_hold() {
   [ -n "$(body_hold_set_timestamp "$(show_field_value "$show" body)")" ] \
     || fail "task $id lost its hold-set stamp while being held"
   publish_parent_hold "$id" "$occurrence" needs-decision "$reason"
+  if [ "$preserve_hold_set" = 0 ] && [ -z "$until" ] && [ "${FM_SUPERVISION_ACTOR:-}" != branch ]; then
+    "$SCRIPT_DIR/fm-away-notify.sh" send \
+      --summary "waiting on your decision: $(show_field_value "$show" title) - $reason" >/dev/null || true
+  fi
   printf '%s\n' "$id"
 }
 

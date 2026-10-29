@@ -71,6 +71,9 @@
 #     start without scanning lifetime history.
 #   - Every mutation runs under $STATE/.branch-outcomes.lock so the branch
 #     extension and a concurrent session-start replay cannot interleave.
+#   - Away alert: each appended captain row runs bin/fm-away-notify.sh send
+#     once, after the row is stored and the lock released; that script owns
+#     whether anything is sent, and its outcome never changes this exit status.
 #   - The store is written BEFORE the outcome is delivered to main
 #     (store-first durability): nothing about a handled event depends on
 #     conversation memory.
@@ -558,6 +561,9 @@ case "$CMD" in
     fi
     fm_lock_release "$LOCK"
     printf '%s\n' "$SEQ"
+    if [ "$VERDICT" = captain ]; then
+      "$SCRIPT_DIR/fm-away-notify.sh" send --summary "$SUMMARY" >/dev/null || true
+    fi
     ;;
   unread)
     [ "$#" -eq 0 ] || usage

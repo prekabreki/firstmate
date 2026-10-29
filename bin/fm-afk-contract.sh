@@ -9,8 +9,11 @@
 # path in bin/fm-afk-return.sh calls `archive` through bin/fm-afk-launch.sh stop).
 # Being away changes how the captain is informed and what happens at a
 # captain-owned decision point, never the authority set. Hold-for-return is the
-# only reach profile this release records: there is no phone channel, and the
-# entry announcement says so every time.
+# reach profile: anything that needs the captain waits for their return. When
+# config/away-notify enables a channel at entry (bin/fm-away-notify.sh
+# `configured`), the record says so (reach_channels: phone) and the captain's
+# phone is also alerted when something starts waiting; the entry announcement
+# says which every time.
 #
 # AWAY OR QUIET. The same record also backs daemon-backed quiet mode, which a
 # quiet entry marks with `mode: quiet`: the captain is present there, so a quiet
@@ -50,7 +53,7 @@
 #   entered: <UTC ISO 8601>
 #   entered_epoch: <seconds>
 #   expected_return: <UTC ISO 8601> | -
-#   reach_channels: none
+#   reach_channels: none | phone
 #   reach_announced: <the one-sentence reach announcement>
 #   spend_max_concurrent_workers: <n>   without --spend, the ordinary worker
 #                                  records this home already holds at entry,
@@ -160,6 +163,7 @@ FM_AFK_CONTRACT_VERSION=2
 # Older record versions this script still reads (never writes).
 FM_AFK_CONTRACT_READABLE_VERSIONS="1 2"
 FM_AFK_CONTRACT_REACH_ANNOUNCED='No phone channel is configured; anything that needs you waits for your return.'
+FM_AFK_CONTRACT_REACH_ANNOUNCED_PHONE='Your phone is alerted when something needs you, so you can connect and answer; until then it waits for your return.'
 FM_AFK_CONTRACT_SPEND_DEFAULT=4
 FM_AFK_CONTRACT_QUIET_HOLDS_NOTHING='you are present, so nothing waits for your return: every action you ask for, a local landing or a merge included, proceeds now under ordinary attended authority, and quiet mode changes only which updates reach this conversation.'
 # Generous against the longest legitimate holder, a merge waiting on the forge,
@@ -303,8 +307,13 @@ fm_afk_contract_render_record() {  # <entered-iso> <entered-epoch> <confirmed-is
   printf 'entered: %s\n' "$entered"
   printf 'entered_epoch: %s\n' "$entered_epoch"
   printf 'expected_return: %s\n' "${EXPECTED_RETURN:--}"
-  printf 'reach_channels: none\n'
-  printf 'reach_announced: %s\n' "$FM_AFK_CONTRACT_REACH_ANNOUNCED"
+  if "$FM_AFK_CONTRACT_DIR/fm-away-notify.sh" configured 2>/dev/null; then
+    printf 'reach_channels: phone\n'
+    printf 'reach_announced: %s\n' "$FM_AFK_CONTRACT_REACH_ANNOUNCED_PHONE"
+  else
+    printf 'reach_channels: none\n'
+    printf 'reach_announced: %s\n' "$FM_AFK_CONTRACT_REACH_ANNOUNCED"
+  fi
   printf 'spend_max_concurrent_workers: %s\n' "${SPEND:-$FM_AFK_CONTRACT_SPEND_DEFAULT}"
   printf 'confirmed: %s\n' "$confirmed"
   printf 'confirmed_epoch: %s\n' "$confirmed_epoch"
@@ -399,7 +408,10 @@ fm_afk_contract_validate() {  # <path>
   expected=$(fm_afk_contract_read_field "$path" expected_return)
   [ "$expected" = - ] || fm_afk_contract_validate_iso "$expected" || { fm_afk_contract_log "record $path has no valid expected_return"; return 1; }
   reach=$(fm_afk_contract_read_field "$path" reach_channels)
-  [ "$reach" = none ] || { fm_afk_contract_log "record $path has no valid reach_channels"; return 1; }
+  case "$reach" in
+    none|phone) ;;
+    *) fm_afk_contract_log "record $path has no valid reach_channels"; return 1 ;;
+  esac
   announced=$(fm_afk_contract_read_field "$path" reach_announced)
   [ -n "$announced" ] || { fm_afk_contract_log "record $path has no reach announcement"; return 1; }
   spend=$(fm_afk_contract_read_field "$path" spend_max_concurrent_workers)
@@ -419,6 +431,14 @@ fm_afk_contract_validate() {  # <path>
 }
 
 # --- rendering --------------------------------------------------------------
+
+fm_afk_contract_reach_profile() {  # <path>
+  if [ "$(fm_afk_contract_read_field "$1" reach_channels)" = phone ]; then
+    printf 'hold-for-return with phone alerts'
+  else
+    printf 'hold-for-return only'
+  fi
+}
 
 # The read-back is the record's content and nothing else: the words verbatim
 # beside the entry time, expected return, spend cap, and reach line. Firstmate's
@@ -441,7 +461,7 @@ fm_afk_contract_render_readback() {  # <path>
     printf '  entered: %s\n' "$(fm_afk_contract_read_field "$path" entered)"
     printf '  expected return: %s\n' "$( [ "$expected" = - ] && printf 'not given' || printf '%s' "$expected")"
     printf '  spend cap: %s concurrent workers\n' "$spend"
-    printf '  reach: hold-for-return only. %s\n' "$(fm_afk_contract_read_field "$path" reach_announced)"
+    printf '  reach: %s. %s\n' "$(fm_afk_contract_reach_profile "$path")" "$(fm_afk_contract_read_field "$path" reach_announced)"
   fi
   words=$(fm_afk_contract_read_words "$path"; rc=$?; printf x; exit "$rc") || return 1
   words=${words%x}
@@ -469,8 +489,9 @@ fm_afk_contract_render_announcement() {  # <path>
   else
     mandate_text='No away instructions were recorded; the away session acts on standing authority only, and anything that needs you waits for your return.'
   fi
-  printf 'Away posture recorded at %s: hold-for-return only. %s %s Destructive, irreversible, and security-sensitive actions are never pre-authorizable, whatever the words say. Expected return: %s. Spend cap: %s concurrent workers.\n' \
+  printf 'Away posture recorded at %s: %s. %s %s Destructive, irreversible, and security-sensitive actions are never pre-authorizable, whatever the words say. Expected return: %s. Spend cap: %s concurrent workers.\n' \
     "$(fm_afk_contract_read_field "$path" confirmed)" \
+    "$(fm_afk_contract_reach_profile "$path")" \
     "$(fm_afk_contract_read_field "$path" reach_announced)" \
     "$mandate_text" \
     "$( [ "$expected" = - ] && printf 'not given' || printf '%s' "$expected")" \
