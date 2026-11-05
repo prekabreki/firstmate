@@ -1,8 +1,7 @@
 ---
 name: stow
 description: >-
-  Sweep the session for uncaptured durable knowledge and unfiled or wrong open work records, and curate startup memory.
-  Use when the captain invokes /stow (e.g. "/stow", "stow what you've learned"), before a session reset or context compaction, or periodically to keep operational memory current.
+  Use on /stow, before reset or compaction, or for periodic memory curation; preserve knowledge and open work, sync global memory and research, file follow-ups, and drop a chief handoff.
 user-invocable: true
 metadata:
   internal: true
@@ -78,6 +77,11 @@ While the flag is present:
 - Reinforcement refreshes the date and clears the counter, and nothing else clears it, so the evidence hard rule in step 4 stays the only way an entry renews its lease.
 - An existing dated marker with no `/N` reads as counter zero, so a home that opts in migrates nothing.
 - Removing the flag returns the home to the default contract on its next pass: any `/N` already written is then neither read nor advanced, and is left in place rather than rewritten.
+
+## Fork extension: wrap-up integration
+
+Read and apply the bounded [wrap-up steps](#fork-extension-wrap-up-steps) before starting the pass below.
+They add follow-up capture and external knowledge/handoff delivery without changing the existing memory, project-write, publication, or cascade boundaries.
 
 ## Required startup-memory pass
 
@@ -268,6 +272,104 @@ The first pass after adoption performs a one-time revalidation sweep of editable
 - On the first pass that cannot cite independent current-session evidence for an unmarked entry in `data/learnings.md`, add `<!--g-->` as its trailing marker and retain it through the rest of that pass; carrying no date, it persists that the entry has consumed exactly one grace cycle without pretending it was reinforced.
 - Only an entry that already carried `<!--g-->` when this invocation began is on the next-pass branch: replace that marker with the normal dated tier marker if independent current-session evidence confirms the entry; otherwise archive it with provenance `legacy-unvalidated`.
 - The grace period is one full stow cycle, not a time window, and the same persisted transition applies when a hand edit later leaves an entry unmarked in `data/learnings.md`.
+
+## Fork extension: wrap-up steps
+
+These steps carry the selected call-it functions into the internal stow pass; do not also run call-it.
+Do not start new implementation work or rush partial work to completion for a tidy handoff.
+Do not commit or push this Firstmate home's tracked code as part of stow: its changes still ship through the selected PR path, and `data/` stays gitignored.
+Never write a project's `AGENTS.md` or broaden project-write authority for these steps.
+External knowledge writes and the chief drop below are the specifically requested wrap-up operations, not permission for other project edits.
+Perform the follow-up gate during open-record persistence, global capture before any local removal, research preservation during the knowledge sweep, then sync and chief delivery after the local pass and any cascade, before the completion receipt.
+In a secondmate home, return the external handoff facts to the primary through the existing parent channel; the primary owns the consolidated chief drop, so cascades do not overwrite it with partial reports.
+
+### Follow-up issue gate
+
+List each unfinished thread this session actually started or surfaced, including explicit deferred commitments and concrete actionable findings.
+Read the relevant repository's `.claude/parked.md` when present and apply the same filter; absence is a valid no-op.
+Casual speculation, general interest, and agent suggestions without a concrete useful outcome do not become work merely because stow ran.
+Search for an existing issue first, then load `gh-issues-writing` to file or update actionable follow-ups under its solo/shared-repository consent rules, using `gh-axi` for GitHub operations.
+For Firstmate-repository work, load `firstmate-self-repo` before any publication decision; absent publication authority, keep a sanitized local issue draft and state that boundary as the reason no issue was filed.
+Keep fleet backlog records through `bin/fm-tasks-axi.sh` and link the issue in the item; an issue does not replace the backlog owner.
+Human coordination and decisions stay in the handoff and existing captain-held records, never new implementation issues.
+For every unfinished thread, record an issue number or one explicit line explaining its absence, such as publication not authorized, forge unavailable, human coordination, trivial, or explicitly dropped.
+When issue tracking is unavailable, preserve actionable next moves in the owning durable record and chief handoff with that reason.
+A queued item alone without an issue or reason does not satisfy this gate.
+Remove a parked entry only after its actionable content is transferred through its permitted owner; retain an unrecordable actionable entry with its reason, and discard only non-actionable noise.
+If the parked file is project-owned and direct edits are not authorized, route its update through the project's delivery path instead of editing it yourself.
+Never report parked findings as completed work.
+
+### Global memory capture and stale review
+
+Use the existing `Memory layering` declaration mechanism from `docs/configuration.md`, not a second implicit memory owner.
+For global capture to operate, the primary must declare a tier named `global-memory` under `Memory layering` in `data/captain.md` (or primary-owned `data/captain-shared.md` for inheritance), with this substance:
+
+> global-memory is authoritative for cross-machine tool and CLI gotchas, workflows, environment quirks, and hardware/account facts that are not tied to one project.
+> Resolve its destination in order: `$SKILLS_HOME/global-memory`, `~/git/vibe-skills/global-memory`, `C:/git/vibe-skills/global-memory`, first existing directory wins.
+> Inspect before updating; correct or supersede stale entries in place under the store's conventions, retain dormant knowledge in Cold storage, capture before local removal, rebuild the generated index, and sync with the co-located `tools/sync.sh`.
+
+Do not manufacture that declaration or overwrite another tier's ownership during stow.
+If no declaration covers this class, preserve findings through the existing local owners and report the missing global-memory setup and uncaptured global findings; do not claim global delivery or reset-safe while those findings remain uncaptured.
+If another declared tier owns the class, follow it and report the routing conflict rather than silently duplicating authority.
+If the declared destination is absent or unreachable, skip the external write with its concrete reason and apply the existing pending-capture guard.
+No absent external repository fails the local stow pass.
+
+Save only findings that would change a future agent's behavior; no new memory is a valid outcome.
+Include corrections, confirmed non-obvious decisions, and worker findings the primary must capture on their behalf.
+Inspect existing global entries before writing and follow the resolved store's own format and privacy rules; never export private project content merely because the store is cross-machine.
+Review entries this session invalidated and correct or supersede them under the declaration's correction rule.
+For true-but-dormant global entries, set `section: Cold storage` instead of deleting the file; promote a cold entry actually used this session back to its topical section.
+Never demote safety-critical guards for dormancy.
+Run `python3 "<skills-root>/tools/memory.py" index --write` after changes; `global-memory/MEMORY.md` is generated, never hand-edited.
+If the session or `memory.py doctor` identifies waiting `global-memory/drafts/`, offer `python3 "<skills-root>/tools/memory.py" intake` rather than silently promoting authored drafts; tighten promoted descriptions into triggers when intake is authorized.
+Local memory remains governed by the pass's existing clocks and declared-tier capture guard; global Cold storage does not replace the local archive.
+
+### Preserve research discoveries
+
+When this session produced good research, a verified procedure, a breakthrough, or a hard-won discovery, preserve a standalone write-up rather than only a short memory nudge.
+Resolve the first existing research directory in this order: `$SKILLS_HOME/research`, `~/git/vibe-skills/research`, `C:/git/vibe-skills/research`.
+If none exists, state the reason and skip without failing the local pass.
+Otherwise confirm an existing write-up is complete, or write a descriptive `.md` under the matching project/topic subfolder, creating that subfolder when needed and matching its style.
+Include enough verified procedure, evidence, and limitations to make the discovery reusable; omit filler and respect the destination's privacy boundary.
+There is no research index to update.
+No qualifying discovery is a valid explicit skip.
+
+### Sync saved knowledge, including earlier strands
+
+Resolve the first existing vibe-skills root in this order: `$SKILLS_HOME`, `~/git/vibe-skills`, `C:/git/vibe-skills`.
+If absent, skip with a stated reason; if a resolved destination lacks its required script, report failure without inventing replacement git machinery.
+Inspect `git -C "<skills-root>" status --porcelain=v1 -b` for dirty knowledge paths and an `[ahead N]` marker, including memory/research/index writes left by earlier sessions.
+Inspect and rebuild an out-of-date global index before syncing stranded memory changes as well as this session's changes.
+Pass only the inspected memory, research, and generated-index paths, relative to that root, to `bash "<skills-root>/tools/sync.sh" "<conventional commit summary>" <paths>`.
+Do not sweep unrelated skill edits or other WIP into the sync; leave them untouched and mention them in the receipt.
+For a clean branch that is only ahead, the same script with an existing knowledge path still rebases and pushes; inspect the outgoing commits and do not publish unrelated project work under this knowledge-only authority.
+Run the co-located sync script for every distinct resolved root that received knowledge writes if the directory candidates resolved to different checkouts.
+A successful push is required to call captured knowledge synced; on failure retain the local artifacts, report what remains unpushed, and continue to the chief drop with honest partial state.
+This external sync never authorizes pushing Firstmate itself.
+
+### Chief inbox drop
+
+After the pass, cascade, and knowledge-sync attempt, resolve the first existing chief repository in this order: `$CHIEF_HOME`, `~/git/vibe-chief-of-staff`, `C:/git/vibe-chief-of-staff`.
+If absent, state the reason and skip without failing the local pass.
+Derive `<repo-name>`, the inbox repo key, as only the final repository-name segment of the Firstmate code repository's `origin` URL with `.git` stripped (`firstmate` for `.../prekabreki/firstmate.git`), never `<owner>/<repo>`; use it for `--repo`, the summary prefix, and `inbox/wrapup-<repo-name>.md`; fall back to its toplevel folder name only when no origin exists, never to an `FM_HOME` or disposable-worktree name.
+Use a one-line summary `<repo-name>: <state>` and a purposeful body of at most about six lines covering shipped commits/issues, partial or in-flight work, blockers, and follow-ups with issue numbers or reasons.
+End the body with its own required `Waiting on you:` line, derived from genuinely open captain holds and PRs awaiting the captain's merge, plus any other fact only the captain can supply.
+Use full PR URLs and the existing hold/delivery records this session knows; do not turn stow into fleet-wide forge reconciliation or report autonomous work as waiting on the captain.
+Write `Waiting on you: nothing` only when nothing is genuinely blocked on the captain; unknown blocker state is an explicit uncertainty, never an all-clear.
+Run `python "<chief>/tools/chief/cli.py" inbox-drop --chief-home "<chief>" --repo "<repo-name>" --summary "<one-line status>" --body "<details>"` with structured arguments or safely quoted literal text.
+The script owns pull, write, commit, and push of `inbox/wrapup-<repo-name>.md`; never hand-do its git operations or substitute a direct file write.
+Record exit 0 as delivered (committed and pushed, or already up to date) and exit 3 as no chief repository found/skipped.
+Record exit 2 as committed locally but unpushed (will need a later sync) only when the script's output says it `committed ... locally`; exit 2 without that message (a failed commit, unknown command, or rejected arguments) means nothing was committed and is a failed drop.
+Surface the unpushed commit and exit 3 explicitly in the receipt; any other outcome is a failed drop with its diagnostic.
+
+### Additional completion receipt and reset gate
+
+Extend the existing receipt with every unfinished thread's issue number or one-line reason and the parked-file disposition; global tier captures, stale/cold review, index rebuild and draft disposition; research artifacts or skip reason; each knowledge sync's outcome and stranded paths; and the chief drop's outcome, exit code when invoked, and final `Waiting on you:` line.
+For a secondmate, name the external handoff facts routed to the primary and any pending delivery rather than claiming the primary's drop succeeded.
+Distinguish completed, unnecessary, skipped because absent, deferred, and failed steps, naming concrete reasons and retained artifacts.
+An absent optional repo permits the local pass to finish but never converts uncaptured or unpushed knowledge into delivered knowledge.
+Do not claim reset-safe while any chosen step failed, any actionable thread lacks an issue or stated reason, any global finding or qualifying discovery lacks durable capture, or any required knowledge sync remains unpushed.
+Carry those exceptions alongside the existing memory-budget and cascade reset gates; a pending external delivery must be recorded rather than lost at reset.
 
 ## Completion receipt
 
