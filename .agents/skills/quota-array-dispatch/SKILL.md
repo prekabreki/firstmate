@@ -1,7 +1,7 @@
 ---
 name: quota-array-dispatch
 description: >-
-  Load when a crew-dispatch rule or default resolves to more than one profile candidate, or a Claude ship or scout is dispatched from a home that declares config/claude-accounts.
+  Load when a crew-dispatch rule or default resolves to more than one profile candidate, or a Claude ship, scout, or executor is dispatched from a home that declares config/claude-accounts.
 user-invocable: false
 metadata:
   internal: true

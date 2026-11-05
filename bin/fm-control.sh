@@ -85,7 +85,7 @@
 #              worker account pin (bin/fm-worker-account-lib.sh) here, so a pin
 #              that no longer resolves or is signed out refuses before the old
 #              agent stops. Under a declared config/claude-accounts list, a
-#              Claude ship or scout keeps the account its record names, and
+#              Claude ship, scout, or executor keeps the account its record names, and
 #              only an explicit --account <entry> moves it to another
 #              declared one, checked here the same way.
 #              A replacement omp secondmate likewise passes its per-secondmate

@@ -1623,7 +1623,7 @@ A remote secondmate is launched on its host from its own home's configuration, s
 
 ### Several Claude accounts (config/claude-accounts)
 
-A home with more than one Claude subscription can let each ship and scout launch on whichever declared account has quota to spare, instead of pinning every Claude worker to one account.
+A home with more than one Claude subscription can let each ship, scout, and executor launch on whichever declared account has quota to spare, instead of pinning every Claude worker to one account.
 Create `config/claude-accounts` with one account per line, each `ordinary` or the absolute path of an existing Claude config directory, written exactly as `config/claude-account` would hold it:
 
 ```text
@@ -1635,7 +1635,7 @@ A final newline is optional; a blank line, a relative path, a repeated entry, or
 The list is opt-in: without it, every launch, including the single pin above, behaves exactly as before, and `--account` refuses.
 A home keeps either the list or `config/claude-account`, never both; with both present, every Claude launch refuses.
 
-While the list is present, every Claude ship or scout spawn must name one declared entry with `--account <entry>`.
+While the list is present, every Claude ship, scout, or executor spawn must name one declared entry with `--account <entry>`.
 Firstmate chooses that entry at dispatch intake under the [`quota-array-dispatch`](../.agents/skills/quota-array-dispatch/SKILL.md) procedure, and [`bin/fm-claude-account-quota.sh`](../bin/fm-claude-account-quota.sh) measures each entry for it by running `quota-axi --provider claude --profile-only` under that entry's own config directory (`~/.claude` for `ordinary`).
 Firstmate never picks an entry by default, by file order, or from the ambient account, and never discovers, adds, or copies a login.
 
@@ -1647,7 +1647,7 @@ A relaunch or recovery of that task keeps its recorded account, re-checking that
 To move a task to another declared account, for example when its own account is exhausted, relaunch it explicitly with `bin/fm-control.sh <id> relaunch --account <entry> --note <text>`; nothing moves a running task automatically.
 A task with no recorded account, or one whose account is no longer declared, refuses a plain relaunch and needs that explicit `--account`.
 
-The list covers Claude ships and scouts only.
+The list covers Claude ships, scouts, and executors only.
 A local secondmate's own agent never draws from it: under a list it needs its own [per-secondmate account pin](#per-secondmate-account-pins), and `--account` refuses for every secondmate, local or remote.
 Other runners ignore the list, and `--account` refuses for them.
 Like the single pin, the list is not inherited into secondmate homes.

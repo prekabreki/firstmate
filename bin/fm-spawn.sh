@@ -3,7 +3,7 @@
 # secondmate in its isolated firstmate home.
 # Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--hermes-profile <name>] [--account <entry>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--hermes-profile <name>] [--account <entry>] [--backend <name>] [--herdr-resume-lock-wait]
-#        fm-spawn.sh <task-id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] [--harness <adapter>|launch-command] [--model <name>] [--effort <level>] [--pro <harness>:<model>] [--backend <name>]
+#        fm-spawn.sh <task-id> <project-dir> --executor --issue <N> --yolo <on|off> [--accept-direct-pr] [--harness <adapter>|launch-command] [--model <name>] [--effort <level>] [--pro <harness>:<model>] [--account <entry>] [--backend <name>]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
 #   spawn and refused on --scout and --secondmate spawns. Firstmate resolves both
@@ -591,8 +591,8 @@
 #   T3 Code refuses a pin because its provider instance owns the account.
 #   bin/fm-worker-account-lib.sh owns parsing, the check, and the shed list.
 # Claude account list (config/claude-accounts, --account <entry>):
-#   Opt-in and Claude-only. When the list is present, a Claude ship or scout
-#   spawn must name one declared entry with --account, chosen at intake, and
+#   Opt-in and Claude-only. When the list is present, a Claude ship, scout, or
+#   executor spawn must name one declared entry with --account, chosen at intake, and
 #   that entry is checked, launched, and recorded exactly like a pin; a
 #   relaunch reuses the recorded entry unless --account moves it. Without the
 #   list, --account refuses and nothing else changes. docs/configuration.md
