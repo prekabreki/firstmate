@@ -1,0 +1,29 @@
+## S2 adversarial: the pre-fix owner/repo key
+chief-inbox-drop: committed inbox/wrapup-prekabreki/firstmate.md locally (--no-push); not pushed.
+exit=2
+/tmp/fm-stow-sb.fRgFge/chief/inbox/wrapup-prekabreki/firstmate.md
+reader lists nested drop?
+0
+no -> nested drop invisible to chief (why skill forbids owner/repo)
+
+## S3 exit-code mapping
+-- a) --no-push (commit made, not pushed):
+chief-inbox-drop: committed inbox/wrapup-firstmate.md locally (--no-push); not pushed.
+exit=2  -> skill rule: exit 2 + 'committed ... locally' => committed-but-unpushed
+local HEAD: chore(inbox): wrapup firstmate
+## main...origin/main [ahead 1]
+-- b) push failure (remote made unwritable):
+chief-inbox-drop: committed inbox/wrapup-firstmate.md locally but push failed. It will sync on the next push/orient.
+exit=2  -> committed-locally message present => unpushed
+-- c) malformed invocation (missing --summary):
+usage: cli.py inbox-drop [-h] --repo REPO --summary SUMMARY [--body BODY]
+                         [--chief-home CHIEF_HOME] [--today TODAY] [--no-push]
+cli.py inbox-drop: error: the following arguments are required: --summary
+exit=2  -> no 'committed ... locally' => failed drop, nothing committed
+## main...origin/main
+-- d) no chief repo:
+chief-inbox-drop: no chief repo found (tried: /tmp/fm-stow-sb.fRgFge/nope). Skipping inbox drop.
+exit=3  -> skipped, absent
+-- e) identical re-drop:
+chief-inbox-drop: inbox/wrapup-firstmate.md already up to date, nothing to commit.
+exit=0  -> delivered (already up to date)

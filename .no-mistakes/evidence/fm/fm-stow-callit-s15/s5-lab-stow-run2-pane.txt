@@ -1,0 +1,60 @@
+
+  Unfinished work:
+  - The fm-lint.sh failure under a comma-decimal number locale is already tracked as issue #7, so I filed nothing new. Your shared memory store already has the related LC_NUMERIC=C fix recorded.
+  - https://github.com/prekabreki/firstmate/pull/999 still needs your merge. I didn't create a separate backlog item for it.
+  - There was no parked-findings file and no research write-up to save. No second mates are registered, so the pass covered only this home.
+
+  Decision needed: should I publish the labfixture-cli gotcha to your real cross-machine memory store and drop a firstmate handoff note in the chief-of-staff inbox? That note's "Waiting on you" line
+  would be the PR #999 merge. Or should I keep everything local to this lab home?
+
+✻ Cogitated for 46s · done 15:19
+
+❯ SKILLS_HOME and CHIEF_HOME point at disposable sandbox clones whose origin remotes are local bare repos under /tmp/fm-stow-sb.fRgFge (check with git remote -v), so nothing reaches GitHub. Proceed
+  with the stow wrap-up steps for real against them: global capture, index rebuild, sync, and the chief inbox drop.
+
+  Listed 1 directory, ran 2 shell commands
+
+● Quick correction: my shell still points SKILLS_HOME and CHIEF_HOME at your real GitHub clones, so I'll direct every step at the sandbox clones with local bare remotes and leave the real ones alone.
+
+  Ran 8 shell commands
+
+● Captain, the wrap-up steps are done, all against the sandbox clones. Your real cross-machine memory store and chief-of-staff repo weren't touched. One gap is left, so the session still isn't safe to
+  reset.
+
+  One thing to know first: your message said SKILLS_HOME and CHIEF_HOME pointed at the sandbox. In my shell they actually point at your real clones, whose remotes are on GitHub. So I didn't rely on
+  them and pointed every step at the sandbox clones explicitly. Their remotes are local bare repos under /tmp/fm-stow-sb.fRgFge.
+
+  Cross-machine memory (sandbox store):
+  - I added the gotcha as labfixture-cli-empty-list-on-readonly-cache: with a read-only cache dir, --json returns an empty list at exit 0 instead of erroring.
+  - The first description was 153 characters, over the store's 150 limit, so I tightened it. The index then rebuilt cleanly.
+  - The store's health check shows no problem with the new entry, and there were no drafts waiting.
+  - No existing entry went stale this session. The LC_NUMERIC=C fix entry is still accurate.
+
+  Sync:
+  - The new entry and the rebuilt index were committed and pushed to the sandbox remote (commit a92ff32).
+  - The sandbox's unrelated README.md edit was not mine. I left it uncommitted.
+
+  Chief inbox drop:
+  - Delivered: committed and pushed (exit 0, commit d5ccc23c) as inbox/wrapup-firstmate.md.
+  - Its "Waiting on you" line is: merge https://github.com/prekabreki/firstmate/pull/999
+
+  This home's memory files:
+  - data/captain.md: rewritten. I added the one-line pointer to the stow skill at the top.
+  - data/captain-shared.md: absent, so nothing to do.
+  - data/learnings.md: I added the gotcha there earlier. Once the cross-machine store held it, I removed the copy and deleted the file, since I had created it this pass and nothing else was in it.
+
+  Unfinished work:
+  - The fm-lint.sh comma-decimal locale failure is tracked as issue #7.
+  - The research write-up was skipped: nothing this session qualified.
+  - No parked-findings file and no second mates, so nothing else to cover.
+
+  Not safe to reset: this home still has no memory size limit configured, so I couldn't measure memory before or after the pass. Everything this session learned has been captured, so nothing would be
+  lost. The only thing missing is that measurement, and the limit gets created by the home's first-run setup, not by stow.
+
+✻ Cooked for 54s · done 15:29
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Model: Opus 5.5 │ Thinking: medium │ Ctx Used: 15.0% │ Context: [██░░░░░░░░░░░░░░] 152k/1.0M (15%) │ Reset: 4hr 10m │ (+0,-0) 
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent

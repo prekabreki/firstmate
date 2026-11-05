@@ -1,0 +1,27 @@
+## S1: chief drop with key derived per skill (final origin segment, .git stripped)
+origin=https://github.com/prekabreki/firstmate.git -> repo key=firstmate
+chief-inbox-drop: inbox/wrapup-firstmate.md committed and pushed to the chief repo.
+exit=0
+--- file written:
+-rw-r--r-- 1 prekabreki prekabreki 358  5 nov 15.15 /tmp/fm-stow-sb.fRgFge/chief/inbox/wrapup-firstmate.md
+---
+id: wrapup-firstmate
+source: wrap-up
+kind: session-summary
+repo: firstmate
+summary: "firstmate: stow lab validation"
+created: 2026-10-10
+updated: 2026-11-05
+status: open
+snooze_until:
+---
+
+Shipped: stow wrap-up integration (fm-stow-callit-s15) in review.
+Follow-ups: none (lab run).
+Waiting on you: merge https://github.com/prekabreki/firstmate/pull/999
+--- pushed to bare remote:
+chore(inbox): wrapup firstmate
+15:Waiting on you: merge https://github.com/prekabreki/firstmate/pull/999
+--- chief inbox reader (cli.py inbox) sees it:
+2:  wrapup-firstmate  (session-summary, firstmate)
+3:      firstmate: stow lab validation

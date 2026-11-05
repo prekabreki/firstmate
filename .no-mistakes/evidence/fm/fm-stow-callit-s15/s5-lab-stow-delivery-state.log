@@ -1,0 +1,66 @@
+## Real repos (must be untouched by the lab run)
+0
+632e048 2026-11-04 19:26:55 +0100 memory: vgmstream plays looped wems twice with a fade
+5778806d 2026-11-05 15:28:48 +0100 docs(cyberpunk-2077): narrator audition ready for Pétur's ear (#595)
+ M heatmaps/vibe-chief-of-staff.json
+/home/prekabreki/git/vibe-chief-of-staff/inbox/wrapup-firstmate.md
+0
+
+## Sandbox skills remote after lab /stow
+a92ff32 memory: add labfixture-cli empty-list-on-readonly-cache gotcha
+
+ global-memory/MEMORY.md                                   |  1 +
+ .../labfixture-cli-empty-list-on-readonly-cache.md        | 15 +++++++++++++++
+ 2 files changed, 16 insertions(+)
+5e8aab0 chore(memory): lab stow sync probe
+
+ global-memory/MEMORY.md                  | 1 +
+ global-memory/fm-lab-stow-sync-probe.md  | 9 +++++++++
+ research/fm-lab/stow-wrapup-discovery.md | 4 ++++
+ research/fm-lab/stranded-earlier.md      | 3 +++
+ 4 files changed, 17 insertions(+)
+632e048 memory: vgmstream plays looped wems twice with a fade
+
+ global-memory/MEMORY.md                             |  1 +
+ ...vgmstream-plays-looped-wems-twice-with-a-fade.md | 21 +++++++++++++++++++++
+ 2 files changed, 22 insertions(+)
+---
+name: labfixture-cli-empty-list-on-readonly-cache
+description: labfixture-cli --json returns an EMPTY list at exit 0 when its cache dir is read-only, instead of erroring, so a script reads it as no results.
+type: gotcha
+section: Skills & tooling workflow
+created: 2026-11-05
+---
+
+`labfixture-cli --json` does not fail when its cache directory is read-only: it prints `[]` and exits 0.
+Verified in a 2026-11-05 session, and not tied to one machine or project.
+
+**Why it matters:** a script that checks for an empty list, or chains on the exit code, treats an unwritable cache as "nothing found" and carries on with a false negative.
+
+**How to apply:** when `labfixture-cli --json` returns an empty list you didn't expect, check that its cache dir is writable before you trust the result.
+Same pattern as [[ytmusic-expired-session-returns-zero]]: an empty answer at exit 0 is not proof that nothing is there.
+
+## Sandbox chief remote after lab /stow
+d5ccc23c chore(inbox): wrapup firstmate
+a9b81ba8 chore(inbox): wrapup firstmate
+---
+id: wrapup-firstmate
+source: wrap-up
+kind: session-summary
+repo: firstmate
+summary: "firstmate: idle, PR #999 awaiting merge"
+created: 2026-10-10
+updated: 2026-11-05
+status: open
+snooze_until:
+---
+
+Shipped: nothing new this session; captured the labfixture-cli empty-list-on-readonly-cache gotcha to global memory.
+In flight: none.
+Blockers: lab home has no startup-memory budget config, so the budget pass could not be measured.
+Follow-ups: fm-lint.sh fails under a comma-decimal LC_NUMERIC locale (#7, already tracked).
+Waiting on you: merge https://github.com/prekabreki/firstmate/pull/999
+
+## sandbox skills working tree (unrelated WIP left alone)
+## main...origin/main
+ M README.md
