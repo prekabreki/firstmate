@@ -1,0 +1,4 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.fhYI5B
+error: config/claude-accounts declares 2 Claude accounts, so a Claude ship, scout, or executor launch must name one with --account; bin/fm-claude-account-quota.sh measures each, and Firstmate never picks a default
+SPAWN_RC=1
+bash-5.3$ 

@@ -1,0 +1,9 @@
+1..7
+ok - each captain outcome recorded while away alerts once, with the text as $1 and on stdin
+ok - presenting an unacknowledged captain outcome again never re-sends its alert
+ok - attended sessions, quiet mode, and routine outcomes never alert
+ok - an absent config, or one holding off, sends nothing
+ok - outcomes inside the rate-limit window are counted into the next alert, never dropped
+ok - a new away window starts with no rate-limit window and no carried count
+ok - a failing, hung, or missing command logs a warning and never breaks or stalls the caller
+FM_TEST_COMPLETE

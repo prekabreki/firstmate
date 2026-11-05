@@ -1,0 +1,43 @@
+### pane primary:1
+treehouse get
+░▒▓   …/labproj    main  ▓▒░ ◦•················································································································································•◦ ░▒▓   56ms ▓▒░
+··• treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.8
+Run "treehouse update" to update
+🌳 Setting up worktree...
+🌳 Entered worktree at /tmp/fm-lab.fhYI5B/treehouse/.treehouse/labproj-541ada/1/labproj. Type 'exit' to return.
+░▒▓   …/labproj    HEAD  ▓▒░ ◦•················································································································································•◦ ░▒▓   64ms ▓▒░
+··• cd -- '/tmp/fm-lab.fhYI5B/treehouse/.treehouse/labproj-541ada/1/labproj'
+░▒▓   …/labproj    fm/lab-exec1  ▓▒░ ◦•·········································································································································•◦ ░▒▓   8ms ▓▒░
+··• export GOTMPDIR=/tmp/fm-lab-exec1/gotmp
+export COMPACT_ADVISER_DISABLE=1
+export FM_TASK_ID=lab-exec1
+░▒▓   …/labproj    fm/lab-exec1  ▓▒░ ◦•·········································································································································•◦ ░▒▓   6ms ▓▒░
+··• export COMPACT_ADVISER_DISABLE=1
+░▒▓   …/labproj    fm/lab-exec1  ▓▒░ ◦•·········································································································································•◦ ░▒▓   6ms ▓▒░
+··• export FM_TASK_ID=lab-exec1
+░▒▓   …/labproj    fm/lab-exec1  ▓▒░ ◦•·········································································································································•◦ ░▒▓   8ms ▓▒░
+··• . '/tmp/fm-lab-exec1+205e7f2bcf996ae0e45cc3606e14a6136e3785e0ab31076bff6b07fbdb6b8638/launch.s1793891120.1806156.30579.sh'
+LABDONE
+░▒▓   …/labproj    fm/lab-exec1  ▓▒░ ◦•·····································································································································•◦ ░▒▓   6s321ms ▓▒░
+··• 
+### state/lab-exec1.executor-exit
+0
+### meta
+window=primary:fm-lab-exec1
+endpoint_task_id=lab-exec1
+worktree=/tmp/fm-lab.fhYI5B/treehouse/.treehouse/labproj-541ada/1/labproj
+project=/tmp/fm-lab.fhYI5B/projects/labproj
+harness=claude
+approval_mode=bypass
+kind=executor
+mode=direct-PR
+yolo=on
+issue=1
+executor_base=e3d11c25575d6e6a190aef980f7812330ad11a3e
+executor_launched=1793891120
+tasktmp=/tmp/fm-lab-exec1
+model=haiku
+effort=default
+account=ordinary
+spawn_gen=s1793891120.1806156.30579

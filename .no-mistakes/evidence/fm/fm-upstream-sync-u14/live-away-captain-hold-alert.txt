@@ -1,0 +1,27 @@
+$ bin/fm-afk-contract.sh enter --words "keep going"
+  reach: hold-for-return with phone alerts. Your phone is alerted when something needs you, so you can connect and answer; until then it waits for your return.
+  your words (verbatim):
+    keep going
+$ tasks-axi add lab-scout "Investigate lab" --kind scout --repo labproj --start
+  - Run `tasks-axi done lab-scout --pr <url>` when it ships
+  - Run `tasks-axi block lab-scout --by <other>` to record a dependency
+$ bin/fm-captain-hold.sh hold lab-phone-call --title "Pick the lab cut" --reason "captain cut choice pending" --repo labproj --origin lab-scout
+lab-phone-call
+rc=0
+$ repeat hold (must not re-alert)
+lab-phone-call
+### phone.log (config/away-notify command output)
+Firstmate: waiting on your decision: Pick the lab cut - captain cut choice pending
+### data/backlog.md after hold
+# Backlog
+
+## In flight
+## Queued
+- [ ] lab-phone-call - Pick the lab cut (repo: labproj) (kind: captain) (since 2026-11-05) (hold: fm-hold-v1:Y2FwdGFpbiBjdXQgY2hvaWNlIHBlbmRpbmc=) (hold-kind: captain)
+  Captain hold set: 2026-11-05T15:08:48Z
+  Captain hold origin: lab-scout
+
+  Origin: lab-scout
+
+## Done
+### phone.log line count: 1

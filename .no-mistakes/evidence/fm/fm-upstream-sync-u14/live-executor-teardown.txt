@@ -1,0 +1,18 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.fhYI5B
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+teardown: reaping leaked worktree process(es) for lab-exec1: 1807187
+teardown: force-killing leaked worktree process(es) for lab-exec1: 1807187
+A new version of treehouse is available: v2.3.0 → v3.1.8
+Run "treehouse update" to update
+🌳 Worktree returned to pool.
+labproj: already current
+teardown lab-exec1 complete (window primary:fm-lab-exec1, worktree /tmp/fm-lab.fhYI5B/treehouse/.treehouse/labproj-541ada/1/labproj)
+Backlog: lab-exec1 just finished (this home keeps no markdown backlog at /tmp/fm-lab.fhYI5B/data/backlog.md). Update /tmp/fm-lab.fhYI5B/data/backlog.md - move lab-exec1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+TD_RC=0
+bash-5.3$ 

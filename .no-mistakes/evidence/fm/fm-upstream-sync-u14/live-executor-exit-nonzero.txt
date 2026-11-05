@@ -1,0 +1,13 @@
+### pane primary:1 (agent launched with --model no-such-model-labprobe)
+··• export FM_TASK_ID=lab-exec2
+░▒▓   …/labproj    fm/lab-exec2  ▓▒░ ◦•·········································································································································•◦ ░▒▓   6ms ▓▒░
+··• . '/tmp/fm-lab-exec2+205e7f2bcf996ae0e45cc3606e14a6136e3785e0ab31076bff6b07fbdb6b8638/launch.s1793891206.1843415.6897.sh'
+Claude Code doesn't recognize the model "no-such-model-labprobe", so it assumes a context window of 200k tokens. Update Claude Code, or see https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id to set the window.
+[claude-code:unrecognized_model] {"model":"no-such-model-labprobe","query_source":"sdk"}
+There's an issue with the selected model (no-such-model-labprobe). It may not exist or you may not have access to it. Run --model to pick a different model.
+░▒▓   …/labproj    fm/lab-exec2  ▓▒░ ◦•·····································································································································•◦ ░▒▓   5s125ms ▓▒░
+··• 
+### state/lab-exec2.executor-exit
+1
+### fm-executor-poll.sh verdict
+executor-failed: no commits and no PR (verify likely failed before commit)
