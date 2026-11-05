@@ -351,13 +351,13 @@ This external sync never authorizes pushing Firstmate itself.
 
 After the pass, cascade, and knowledge-sync attempt, resolve the first existing chief repository in this order: `$CHIEF_HOME`, `~/git/vibe-chief-of-staff`, `C:/git/vibe-chief-of-staff`.
 If absent, state the reason and skip without failing the local pass.
-Derive the inbox repo key from the Firstmate code repository's `origin` URL (`<owner>/<repo>`, stripping `.git`); fall back to its toplevel folder name only when no origin exists, never to an `FM_HOME` or disposable-worktree name.
+Derive `<repo-name>`, the inbox repo key, as only the final repository-name segment of the Firstmate code repository's `origin` URL with `.git` stripped (`firstmate` for `.../prekabreki/firstmate.git`), never `<owner>/<repo>`; use it for `--repo`, the summary prefix, and `inbox/wrapup-<repo-name>.md`; fall back to its toplevel folder name only when no origin exists, never to an `FM_HOME` or disposable-worktree name.
 Use a one-line summary `<repo-name>: <state>` and a purposeful body of at most about six lines covering shipped commits/issues, partial or in-flight work, blockers, and follow-ups with issue numbers or reasons.
 End the body with its own required `Waiting on you:` line, derived from genuinely open captain holds and PRs awaiting the captain's merge, plus any other fact only the captain can supply.
 Use full PR URLs and the existing hold/delivery records this session knows; do not turn stow into fleet-wide forge reconciliation or report autonomous work as waiting on the captain.
 Write `Waiting on you: nothing` only when nothing is genuinely blocked on the captain; unknown blocker state is an explicit uncertainty, never an all-clear.
 Run `python "<chief>/tools/chief/cli.py" inbox-drop --chief-home "<chief>" --repo "<repo-name>" --summary "<one-line status>" --body "<details>"` with structured arguments or safely quoted literal text.
-The script owns pull, write, commit, and push of `inbox/wrapup-<repo>.md`; never hand-do its git operations or substitute a direct file write.
+The script owns pull, write, commit, and push of `inbox/wrapup-<repo-name>.md`; never hand-do its git operations or substitute a direct file write.
 Record exit 0 as delivered (committed and pushed, or already up to date) and exit 3 as no chief repository found/skipped.
 Record exit 2 as committed locally but unpushed (will need a later sync) only when the script's output says it `committed ... locally`; exit 2 without that message (a failed commit, unknown command, or rejected arguments) means nothing was committed and is a failed drop.
 Surface the unpushed commit and exit 3 explicitly in the receipt; any other outcome is a failed drop with its diagnostic.
