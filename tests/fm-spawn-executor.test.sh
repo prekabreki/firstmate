@@ -100,7 +100,29 @@ run_spawn() {  # <home> <wt> <fakebin> <launchlog> <args...>
 }
 
 launch_line() {  # <launchlog>
-  tail -n 1 "$1"
+  fm_test_launch_unframe "$(cat "$1")"
+}
+
+test_executor_exit_marker_keeps_agent_status() {
+  local setting rec id out rc actual
+  for setting in absent enabled; do
+    id=exec-status-$setting
+    rec=$(make_case "status-$setting"); read_case "$rec"
+    [ "$setting" = absent ] || : > "$HOME_DIR/config/launch-env-allowlist"
+    cat > "$FAKEBIN_DIR/exit-probe" <<'SH'
+#!/bin/sh
+exit 37
+SH
+    chmod +x "$FAKEBIN_DIR/exit-probe"
+    executor_brief "$HOME_DIR" "$id" 12
+    out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+      --executor --issue 12 --yolo off --harness "$FAKEBIN_DIR/exit-probe run"); rc=$?
+    expect_code 0 "$rc" "exit-status probe spawn should succeed ($setting): $out"
+    fm_eval_launch "$(cat "$LAUNCH_LOG")" "$WT_DIR" "$FAKEBIN_DIR" >/dev/null 2>&1
+    actual=$(cat "$HOME_DIR/state/$id.executor-exit")
+    [ "$actual" = 37 ] || fail "executor marker must preserve agent exit 37 across OSC cleanup ($setting), got $actual"
+  done
+  pass "executor exit markers preserve the agent's failure across OSC cleanup and the cleared launch environment"
 }
 
 test_executor_spawn_records_meta_branch_and_poll() {
@@ -130,7 +152,7 @@ test_executor_spawn_records_meta_branch_and_poll() {
   cmp -s "$HOME_DIR/data/$id/brief.md" "$HOME_DIR/data/$id/launch-brief.md" \
     || fail "launch-brief.md must be the executor brief verbatim (no worker role or intent overlay)"
   launch=$(launch_line "$LAUNCH_LOG")
-  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' '$FAKEBIN_DIR/opencode' run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
+  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' '$FAKEBIN_DIR/opencode' run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
   [ "$launch" = "$expected" ] || fail "opencode executor launch mismatch"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   pass "executor spawn: meta, pre-created branch at its base, published poll, excluded PR body, verbatim launch brief"
 }
@@ -146,7 +168,7 @@ test_headless_templates_per_adapter() {
   assert_contains "$launch" "claude -p --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' --model 'sonnet' --effort 'high' --output-format text \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"" \
     "claude headless form: -p, the permission flag, attribution settings, model, effort, text output, brief last"
   assert_not_contains "$launch" '--append-system-prompt' "the one-shot form carries no interactive task channel"
-  assert_contains "$launch" "; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" "the pane shell writes the exit marker"
+  assert_contains "$launch" "; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" "the pane shell writes the exit marker"
   [ ! -e "$WT_DIR/.claude/settings.local.json" ] || fail "an executor must get no claude hook settings"
   assert_grep 'yolo=on' "$HOME_DIR/state/$id.meta" "yolo on is recorded"
 
@@ -288,7 +310,7 @@ test_raw_command_receives_brief_as_final_argument() {
   expect_code 0 "$rc" "a raw executor command should launch: $out"
   assert_contains "$out" "spawned $id harness=mytool kind=executor" "the raw command's basename is recorded"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "the raw command must receive the encoded brief as its final argument, got: $launch"
   id=exec-raw-e2
   rec=$(make_case raw-placed); read_case "$rec"
@@ -296,7 +318,7 @@ test_raw_command_receives_brief_as_final_argument() {
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 11 --yolo off --harness 'mytool --brief __BRIEF__ run'); rc=$?
   expect_code 0 "$rc" "a raw command naming __BRIEF__ should launch: $out"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "a raw command that places __BRIEF__ itself must keep that placement, got: $launch"
   pass "a raw executor command receives the encoded brief last unless it places __BRIEF__ itself"
 }
@@ -477,6 +499,7 @@ SH
   pass "a project with no .foreman.local runs the plain executor lane with no label traffic"
 }
 
+test_executor_exit_marker_keeps_agent_status
 test_executor_spawn_records_meta_branch_and_poll
 test_headless_templates_per_adapter
 test_executor_refusals
