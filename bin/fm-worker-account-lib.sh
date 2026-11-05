@@ -58,12 +58,12 @@
 # path exactly as config/claude-account would hold it, with no blank lines,
 # duplicates, or control characters, and an optional final newline. The list is
 # opt-in in the same way: absent, nothing here changes. Present, it replaces the
-# home-wide pin, which must then be absent, and every Claude ship or scout
+# home-wide pin, which must then be absent, and every Claude ship, scout, or executor
 # launch names one declared entry with --account; Firstmate chooses it at
 # intake (bin/fm-claude-account-quota.sh measures each entry) and never
 # defaults to the first entry, another entry, or the ambient account. The named
 # entry passes the same root, raw-command, and sign-in refusals as a pin and is
-# recorded as account=, which a ship or scout relaunch reuses unless an
+# recorded as account=, which a ship, scout, or executor relaunch reuses unless an
 # explicit --account moves it. A local secondmate's agent never draws from the
 # list: it needs its own per-secondmate pin.
 
@@ -235,7 +235,7 @@ fm_worker_account_list() {
 # fm_worker_account_relaunch_request <harness> <config-dir> <prior-harness> <recorded-account> <explicit-account> [<secondmate-id>]
 # Prints the declared account a relaunch asks fm_worker_account_select for:
 # the explicit one when given, otherwise the task's recorded account when the
-# home declares config/claude-accounts and a Claude ship or scout stays on
+# home declares config/claude-accounts and a Claude ship, scout, or executor stays on
 # Claude. Prints nothing otherwise, so a relaunch without a list re-reads the
 # pin exactly as before. Returns 1 when the explicit account holds a control
 # character or the list cannot be read.
@@ -333,7 +333,7 @@ fm_worker_account_request_valid() {
 # fm_worker_account_select <harness> <config-dir> <model> <executable> [<raw-command>] [<secondmate-id>] [<account>]
 # The whole launch-time decision. Prints nothing for an unpinned runner, so
 # the caller keeps today's launch unchanged. For a pinned one, or a Claude
-# ship or scout launching on a declared config/claude-accounts entry named by
+# ship, scout, or executor launching on a declared config/claude-accounts entry named by
 # <account>, prints "declared<TAB>root<TAB>provider", where provider is the
 # Pi launch model's own (empty for Claude), after the model guard and the
 # sign-in check pass. On refusal prints one error and returns 1.
@@ -348,7 +348,7 @@ fm_worker_account_select() {
     return 1
   fi
   if [ -n "$account" ] && [ -n "$mate" ]; then
-    echo "error: --account applies to ships and scouts; secondmate $mate launches on its own config/secondmate-accounts/$mate/claude-account pin" >&2
+    echo "error: --account applies to ships, scouts, and executors; secondmate $mate launches on its own config/secondmate-accounts/$mate/claude-account pin" >&2
     return 1
   fi
   listed=$(fm_worker_account_list "$harness" "$config") || return 1
@@ -364,13 +364,13 @@ fm_worker_account_select() {
   setting="config/$(fm_worker_account_file "$harness")"
   [ "$selected_config" = "$config" ] || setting="$selected_config/$(fm_worker_account_file "$harness")"
   if [ -n "$listed" ] && [ -n "$mate" ] && [ "$selected_config" = "$config" ]; then
-    echo "error: config/claude-accounts chooses accounts for ships and scouts only; secondmate $mate needs its own pin in config/secondmate-accounts/$mate/claude-account" >&2
+    echo "error: config/claude-accounts chooses accounts for ships, scouts, and executors only; secondmate $mate needs its own pin in config/secondmate-accounts/$mate/claude-account" >&2
     return 1
   elif [ -n "$listed" ] && [ -z "$mate" ]; then
     setting=config/claude-accounts
     if [ -z "$account" ]; then
       count=$(printf '%s\n' "$listed" | wc -l | tr -d ' ')
-      echo "error: config/claude-accounts declares $count Claude accounts, so a Claude ship or scout launch must name one with --account; bin/fm-claude-account-quota.sh measures each, and Firstmate never picks a default" >&2
+      echo "error: config/claude-accounts declares $count Claude accounts, so a Claude ship, scout, or executor launch must name one with --account; bin/fm-claude-account-quota.sh measures each, and Firstmate never picks a default" >&2
       return 1
     fi
     declared=

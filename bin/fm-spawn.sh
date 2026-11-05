@@ -1359,7 +1359,7 @@ fi
 # A secondmate, local or remote, launches on its own per-mate pin, so --account
 # is refused here, before the remote route could ignore it.
 [ "$ACCOUNT_SET" -eq 0 ] || [ "$KIND" != secondmate ] || {
-  echo "error: --account applies to ships and scouts; secondmate ${POS[0]:-} launches on its own config/secondmate-accounts/<id>/claude-account pin" >&2
+  echo "error: --account applies to ships, scouts, and executors; secondmate ${POS[0]:-} launches on its own config/secondmate-accounts/<id>/claude-account pin" >&2
   exit 1
 }
 # A parent-delivered carrier replaces this home's own resolution, so it is
