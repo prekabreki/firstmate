@@ -358,8 +358,9 @@ Use full PR URLs and the existing hold/delivery records this session knows; do n
 Write `Waiting on you: nothing` only when nothing is genuinely blocked on the captain; unknown blocker state is an explicit uncertainty, never an all-clear.
 Run `python "<chief>/tools/chief/cli.py" inbox-drop --chief-home "<chief>" --repo "<repo-name>" --summary "<one-line status>" --body "<details>"` with structured arguments or safely quoted literal text.
 The script owns pull, write, commit, and push of `inbox/wrapup-<repo>.md`; never hand-do its git operations or substitute a direct file write.
-Record exit 0 as committed and pushed, exit 2 as committed locally but push failed (will need a later sync), and exit 3 as no chief repository found/skipped.
-Surface exits 2 and 3 explicitly in the receipt; any other error is a failed drop with its diagnostic.
+Record exit 0 as delivered (committed and pushed, or already up to date) and exit 3 as no chief repository found/skipped.
+Record exit 2 as committed locally but unpushed (will need a later sync) only when the script's output says it `committed ... locally`; exit 2 without that message (a failed commit, unknown command, or rejected arguments) means nothing was committed and is a failed drop.
+Surface the unpushed commit and exit 3 explicitly in the receipt; any other outcome is a failed drop with its diagnostic.
 
 ### Additional completion receipt and reset gate
 
