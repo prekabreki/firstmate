@@ -2691,7 +2691,7 @@ test_crew_autocompact_value_sets_the_window() {
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
   status=$?
   expect_code 0 "$status" "claude spawn with crew-autocompact=350000 should succeed"$'\n'"$out"
-  launch=$(cat "$LAUNCH_LOG")
+  launch=$(fm_test_launch_unframe "$(cat "$LAUNCH_LOG")")
   expected=$(claude_expected_launch "$launch" "$HOME_DIR" "$id" --dangerously-skip-permissions '--autocompact 350000 ')
   [ "$launch" = "$expected" ] || fail "crew-autocompact=350000 changed more than the window"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   pass "config/crew-autocompact sets the --autocompact window of a claude ship launch"
@@ -2707,7 +2707,7 @@ test_crew_autocompact_off_omits_the_flag() {
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
   status=$?
   expect_code 0 "$status" "claude spawn with crew-autocompact=off should succeed"$'\n'"$out"
-  launch=$(cat "$LAUNCH_LOG")
+  launch=$(fm_test_launch_unframe "$(cat "$LAUNCH_LOG")")
   expected=$(claude_expected_launch "$launch" "$HOME_DIR" "$id" --dangerously-skip-permissions '')
   [ "$launch" = "$expected" ] || fail "crew-autocompact=off did not just omit the flag"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   assert_not_contains "$launch" "--autocompact" "off must launch with no --autocompact flag"
@@ -2724,7 +2724,7 @@ test_crew_autocompact_reaches_scout_launch() {
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --scout)
   status=$?
   expect_code 0 "$status" "claude scout spawn with crew-autocompact=1000000 should succeed"$'\n'"$out"
-  launch=$(cat "$LAUNCH_LOG")
+  launch=$(fm_test_launch_unframe "$(cat "$LAUNCH_LOG")")
   assert_contains "$launch" " --autocompact 1000000 " "scout launch did not carry the configured window"
   pass "config/crew-autocompact reaches scout launches too"
 }
@@ -2760,7 +2760,7 @@ test_non_claude_harness_ignores_crew_autocompact() {
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --harness codex)
   status=$?
   expect_code 0 "$status" "codex spawn under crew-autocompact=300000 should succeed"
-  launch=$(cat "$LAUNCH_LOG")
+  launch=$(fm_test_launch_unframe "$(cat "$LAUNCH_LOG")")
   assert_contains "$launch" "codex " "codex launch did not run codex"
   assert_not_contains "$launch" "--autocompact" "the claude auto-compact flag must not leak into a codex launch"
   pass "config/crew-autocompact changes claude launches only"
