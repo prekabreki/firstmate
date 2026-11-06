@@ -1,0 +1,21 @@
+not ok - the root's wall-clock times were misread under LC_NUMERIC=sv_SE.utf8
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Linux x86_64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	0
+meta	root_deadline_seconds	unbounded
+meta	root_kill_grace_seconds	unbounded
+meta	root_memory_limit_kib	unbounded
+meta	timing_mechanism	none
+begin	1	/tmp/fm-lint-comma-locale.NK2CTp/alpha.sh	0	full	177387179
+end	1	/tmp/fm-lint-comma-locale.NK2CTp/alpha.sh	0	full	177387179	182890179	5503000	0	ok	unavailable	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	0
+rc=1
