@@ -141,9 +141,12 @@ fm_lint_worker_stop() {
   FM_LINT_WORKER_RUN_PID=
 }
 
+# Bash renders EPOCHREALTIME with the locale's decimal separator (a comma
+# under LC_NUMERIC=sv_SE.utf8), so split on the separator, whatever it is.
 fm_lint_now_ms() {
   if [ -n "${EPOCHREALTIME:-}" ]; then
-    local seconds=${EPOCHREALTIME%.*} micros=${EPOCHREALTIME#*.}
+    local now=$EPOCHREALTIME
+    local seconds=${now%%[!0-9]*} micros=${now##*[!0-9]}
     printf '%s\n' "$((seconds * 1000 + 10#${micros:0:3}))"
   else
     printf '%s\n' "$(($(date +%s) * 1000))"
