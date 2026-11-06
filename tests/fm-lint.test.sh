@@ -1961,6 +1961,45 @@ test_roots_sidecar_records_per_root_lifecycle() {
   pass "the retained sidecar records each root's lifecycle with a mode, reason, and duration"
 }
 
+# Prints the first installed locale under which bash renders EPOCHREALTIME
+# with a comma decimal separator, or nothing when none is installed.
+fm_lint_comma_locale() {
+  local candidate
+  for candidate in sv_SE.utf8 sv_SE.UTF-8 de_DE.utf8 de_DE.UTF-8 fr_FR.utf8 fr_FR.UTF-8 nl_NL.utf8 nl_NL.UTF-8; do
+    # shellcheck disable=SC2016 # The child bash expands it under the candidate locale.
+    case "$(env -u LC_ALL LC_NUMERIC="$candidate" bash -c 'printf %s "$EPOCHREALTIME"' 2>/dev/null)" in
+      *,*) printf '%s\n' "$candidate"; return 0 ;;
+    esac
+  done
+}
+
+test_root_timing_survives_a_comma_decimal_locale() {
+  local locale tmp fakebin fixture roots_log out rc before_ms after_ms
+  locale=$(fm_lint_comma_locale)
+  if [ -z "$locale" ]; then
+    pass "SKIP (no comma-decimal locale installed): root timing under a comma-decimal locale"
+    return
+  fi
+  tmp=$(fm_test_tmproot fm-lint-comma-locale)
+  fakebin=$(fm_fakebin "$tmp")
+  fm_lint_stub_shellcheck "$fakebin" "$tmp/stub.log"
+  fixture="$tmp/alpha.sh"
+  roots_log="$tmp/lint.roots.tsv"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture"
+
+  before_ms=$(($(date +%s) * 1000))
+  rc=0
+  out=$(env -u LC_ALL LC_NUMERIC="$locale" PATH="$fakebin:$PATH" FM_TEST_STUB_LOG="$tmp/stub.log" \
+    "$LINT" --telemetry "$tmp/lint.tsv" "$fixture" 2>&1) || rc=$?
+  after_ms=$((($(date +%s) + 1) * 1000))
+  [ "$rc" -eq 0 ] || fail "a clean run failed under LC_NUMERIC=$locale"$'\n'"$out"
+  awk -F '\t' -v lo="$before_ms" -v hi="$after_ms" '
+    $1 == "end" && $6 >= lo && $7 >= $6 && $7 <= hi && $8 == $7 - $6 { found = 1 }
+    END { exit !found }
+  ' "$roots_log" || fail "the root's wall-clock times were misread under LC_NUMERIC=$locale"$'\n'"$(cat "$roots_log")"
+  pass "root timing reads the wall clock under the comma-decimal locale $locale"
+}
+
 test_seeded_module_boundary_parity() {
   if ! pinned_ready; then
     pass "SKIP (ShellCheck $REQUIRED not resolved): seeded source-boundary parity check"
@@ -2060,6 +2099,7 @@ test_require_bounds_refuses_when_enforcement_is_missing
 test_pinned_shellcheck_memory_limit
 test_sidecar_result_exit_reflects_final_status
 test_roots_sidecar_records_per_root_lifecycle
+test_root_timing_survives_a_comma_decimal_locale
 test_seeded_module_boundary_parity
 test_changed_mode_lints_only_the_changed_file
 test_ci_forces_full_lint_even_with_empty_diff
