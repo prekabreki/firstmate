@@ -191,6 +191,29 @@ test_slot_turning_foreign_with_work_keeps_its_lease() {
   pass "a foreign slot holding work keeps its lease and names the release"
 }
 
+test_slot_turning_foreign_in_an_interactive_get_closes_its_window() {
+  local id=pool-race-tmux dir out status
+  dir=$(make_pool_case "$id" foreign)
+  printf '[]\n' > "$dir/fake/status.json"
+  fm_test_fake_tmux_spawn "$dir/fakebin"
+  out=$(env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
+    -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
+    PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
+    FM_FAKE_PANE_PATH="$dir/pool/1/repo" TMUX="fake,1,0" \
+    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' FM_SPAWN_NO_GUARD=1 \
+    "$SPAWN" "$id" "$dir/project" --backend tmux --mode no-mistakes --yolo off 2>&1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn went on into a foreign slot"$'\n'"$out"
+  assert_contains "$out" "is a worktree of '$dir/other-clone'" "the refusal did not name the owning clone"$'\n'"$out"
+  [ -f "$dir/fakebin/.spawn-window" ] || fail "the race case never opened a window"$'\n'"$out"
+  [ ! -s "$dir/fakebin/.spawn-window" ] \
+    || fail "the window whose treehouse get holds the foreign slot was left open"$'\n'"$out"
+  assert_not_contains "$out" "inspect window" "the refusal pointed at a window it should have closed"$'\n'"$out"
+  [ ! -e "$dir/home/state/$id.meta" ] || fail "the refusal published task metadata"
+  [ ! -e "$dir/pool/1/.fm-slot-owner" ] || fail "the refusal claimed the foreign slot"
+  pass "a slot found foreign inside an interactive treehouse get closes the window holding it"
+}
+
 test_symlinked_paths_to_the_same_clone_are_not_a_mismatch() {
   local id=pool-symlinked dir out status
   dir=$(make_pool_case "$id" own)
@@ -238,6 +261,7 @@ test_intake_accepts_its_own_pool_and_reports_an_unreadable_one() {
 test_foreign_pool_refuses_before_any_pane_record_or_lease
 test_slot_turning_foreign_after_the_read_returns_its_clean_lease
 test_slot_turning_foreign_with_work_keeps_its_lease
+test_slot_turning_foreign_in_an_interactive_get_closes_its_window
 test_symlinked_paths_to_the_same_clone_are_not_a_mismatch
 test_intake_warns_about_a_foreign_pool
 test_intake_accepts_its_own_pool_and_reports_an_unreadable_one

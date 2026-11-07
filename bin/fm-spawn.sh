@@ -5069,10 +5069,12 @@ validate_spawn_worktree() { # <source> <inspect-target>
 # took is returned when the slot holds nothing to lose - no uncommitted or
 # untracked file and no commit missing from every remote - because `treehouse
 # return --force` cleans and resets it; otherwise the lease is kept and named.
-# An interactive `treehouse get` holds only the endpoint's process lease, which
-# the endpoint's own abort handling releases.
+# An interactive `treehouse get` holds only the process lease of the shell in
+# the endpoint this fresh spawn just opened, and nothing has launched there yet,
+# so the endpoint is closed to release the slot. A fresh polytoken spawn's abort
+# cleanup already closes it; every other harness closes it here.
 spawn_refuse_foreign_slot() { # <durable-lease: 0|1>
-  local durable=$1 lease_note='' slot_status unpushed
+  local durable=$1 lease_note='' slot_status unpushed tab_id=
   fm_treehouse_slot_foreign_owner "$PROJ_ABS" "$WT" || return 0
   if [ "$durable" = 1 ]; then
     HERDR_LEASED=0
@@ -5085,8 +5087,16 @@ spawn_refuse_foreign_slot() { # <durable-lease: 0|1>
     else
       lease_note="; $WT stays leased to $ID because it holds work or could not be returned; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS"
     fi
-  else
+  elif spawn_endpoint_closes_on_abort; then
     lease_note="; $(spawn_endpoint_hint)"
+  else
+    [ "$BACKEND" != zellij ] || tab_id=${ZELLIJ_TAB_ID:-}
+    if fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null; then
+      SPAWN_ENDPOINT_CLOSED=1
+      lease_note="; window $T, whose treehouse get held the slot, was closed, returning it to the pool"
+    else
+      lease_note="; window $T could not be closed; close it by hand so its slot returns to the pool"
+    fi
   fi
   echo "error: spawn refused: $(fm_treehouse_foreign_pool_message "$PROJ_ABS")$lease_note" >&2
   exit 1
