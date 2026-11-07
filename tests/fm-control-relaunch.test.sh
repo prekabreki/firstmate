@@ -478,6 +478,44 @@ test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   pass "fm-control relaunch: a same-harness relaunch replaces the agent in the same endpoint and worktree"
 }
 
+test_relaunch_autocompact_off_is_task_local_and_survives_later_relaunch() {
+  local dir out rc
+  dir=$(new_case autocompact-off rlac)
+  add_ship_task "$dir" rlac claude
+  mkdir -p "$dir/home/config"
+  printf '400000\n' > "$dir/home/config/crew-autocompact"
+  out=$(run_control "$dir" rlac relaunch --autocompact off --note "recover compact loop"); rc=$?
+  expect_code 0 "$rc" "a task-local autocompact override should succeed"$'\n'"$out"
+  assert_not_contains "$(cat "$dir/fake/literal")" "--autocompact" "recovery must omit the flag"
+  [ "$(meta_field "$dir" rlac autocompact_override)" = off ] || fail "record the recovery override"
+  [ "$(cat "$dir/home/config/crew-autocompact")" = 400000 ] || fail "shared config changed"
+  : > "$dir/fake/literal"
+  out=$(run_control "$dir" rlac relaunch --note "continue recovered task"); rc=$?
+  expect_code 0 "$rc" "later relaunch should retain the override"$'\n'"$out"
+  assert_not_contains "$(cat "$dir/fake/literal")" "--autocompact" "later relaunch must retain recovery"
+  [ "$(meta_field "$dir" rlac autocompact_override)" = off ] || fail "override was lost"
+  pass "relaunch autocompact override preserves config and survives another relaunch"
+}
+
+test_autocompact_override_refuses_before_stopping_an_inapplicable_task() {
+  local dir out rc option
+  for option in '' 400000 auto; do
+    dir=$(new_case autocompact-invalid rlbad)
+    add_ship_task "$dir" rlbad claude
+    out=$(run_control "$dir" rlbad relaunch --autocompact "$option" --note x); rc=$?
+    expect_code 1 "$rc" "invalid autocompact override must refuse"
+    [ ! -s "$dir/fake/literal" ] || fail "invalid override stopped the agent"
+  done
+  dir=$(new_case autocompact-other rlnon)
+  add_ship_task "$dir" rlnon claude
+  out=$(run_control "$dir" rlnon exit --autocompact off); rc=$?
+  expect_code 1 "$rc" "override on exit must refuse"
+  out=$(run_control "$dir" rlnon relaunch --harness codex --autocompact off --note x); rc=$?
+  expect_code 1 "$rc" "override on a non-Claude replacement must refuse"
+  [ ! -s "$dir/fake/literal" ] || fail "inapplicable override stopped the agent"
+  pass "invalid or inapplicable autocompact overrides refuse before stopping"
+}
+
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text() {
   local dir out rc
   dir=$(new_case pending-exit rl43)
@@ -3395,6 +3433,8 @@ test_executor_promotion_is_refused() {
   pass "fm-promote: an executor cannot be promoted; re-scope and relaunch it instead"
 }
 
+test_autocompact_override_refuses_before_stopping_an_inapplicable_task
+test_relaunch_autocompact_off_is_task_local_and_survives_later_relaunch
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven

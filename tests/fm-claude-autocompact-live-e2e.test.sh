@@ -41,12 +41,13 @@ GUARD_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-claude-autocompact.XXXXXX") || fail "c
 trap 'rm -rf "$GUARD_TMP"' EXIT
 version=$(cd "$GUARD_TMP" && claude --version 2>/dev/null | head -1 || true)
 
-# The tracked default and both ends of the range fm-spawn admits must parse.
-for value in 200000 100000 1000000; do
+# Explicit windows and both ends of the range fm-spawn admits must parse.
+# The tracked default omits the flag; that launch shape is pinned portably.
+for value in 400000 200000 100000 1000000; do
   out=$(cd "$GUARD_TMP" && claude --autocompact "$value" --version 2>&1) \
     || fail "claude $version refuses --autocompact $value, which config/crew-autocompact admits: $out"
 done
-pass "claude $version accepts --autocompact 200000 and the range ends 100000 and 1000000"
+pass "claude $version accepts --autocompact 400000, 200000 and the range ends 100000 and 1000000"
 
 # Just outside that range must refuse, naming the flag.
 for value in 99999 1000001; do

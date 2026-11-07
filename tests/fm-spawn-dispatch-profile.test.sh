@@ -2531,7 +2531,7 @@ claude_worker_add_dirs() {  # <home> <id>
 }
 
 claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [<autocompact-segment>]
-  local doorbell quoted autocompact=${5---autocompact 200000 }
+  local doorbell quoted autocompact=${5-}
   doorbell=$(claude_launch_brief_arg "$1")
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"

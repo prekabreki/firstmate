@@ -1467,7 +1467,8 @@ The [Claude adapter reference](../.agents/skills/harness-adapters/references/har
 
 The optional local, gitignored `config/crew-autocompact` sets the context size at which every interactive Claude worker launch compacts automatically: crewmates, scouts, Claude secondmates, and control-plane relaunches.
 `bin/fm-spawn.sh` passes it as Claude Code's `--autocompact <tokens>` launch flag.
-Without a bound, a worker on a 1M-context model can grow toward the full window and re-send all of it on every turn; compaction keeps task continuity, so workers compact early instead.
+The tracked default omits this flag and leaves Claude Code's own auto-compaction policy in control.
+Explicit smaller windows are opt-in because premature compact/refill loops have been observed on 1M-context workers.
 
 ### Accepted values and refusals
 
@@ -1475,7 +1476,7 @@ The token is the file's whitespace-trimmed content.
 
 | Token | Launch flag |
 | --- | --- |
-| absent file | `--autocompact 200000` |
+| absent file | no flag, so Claude Code's own auto-compact default applies |
 | a whole number from `100000` to `1000000` | `--autocompact <number>` |
 | `off` | no flag, so Claude Code's own auto-compact default applies |
 
@@ -1486,9 +1487,31 @@ Any other value or an unreadable file refuses every spawn from that home, whiche
 
 This window is separate from the compact adviser, which every spawned agent runs with disabled through `COMPACT_ADVISER_DISABLE=1` (see [Worker launch environment](#worker-launch-environment-configlaunch-env-allowlist)); this setting never changes that.
 
+### Measured window behavior
+
+Interactive probes on 2026-11-07 with Claude Code 2.1.319 and `--model 'opus[1m]'` measured the following using pasted inert numeric padding and short `Reply only OK` turns.
+
+| Launch | Observed context and footer | Following turn |
+| --- | --- | --- |
+| `--autocompact 400000` | `/context`: 351.6k/400k (88%), `4% until auto-compact`; then 369.3k/400k (92%), `0% until auto-compact` | Context fell to 21.8k and the reply completed |
+| `--autocompact 200000` | With inherited user settings: 217.5k/200k (109%), `0% until auto-compact`; the status line used the full 1M denominator (`Ctx Used: 22%`) | A further reply completed at 217.9k, still showing `0%` |
+| no flag | With inherited user settings: 406k/1M (41%) with no near-compaction warning | Reply completed above 300k |
+
+The 400k probe disabled settings sources and tools, and reported a 33k compaction buffer, consistent with a nominal trigger near 367k rather than 130-140k.
+The inherited-settings comparison also reported a 33k buffer but did not compact on its next short reply, so footer exhaustion alone does not prove a loop or its cause.
+These probes do not explain the reported 130-140k failure, and do not establish that all repositories, models, or user customizations share the clean-session threshold.
+The reported looping workers used full launches with inherited user settings and SessionStart hooks, and already displayed `Ctx Used: 13%` within seconds of startup, before doing task work.
+Large hook-injected startup context is therefore a hypothesis for a future probe, not an established cause.
+They support omitting an imposed window by default rather than promising that an explicit value is a reliable trigger across environments.
+The previous 200k default also imposed a nominal window below 300k.
+
 ### When changes apply and inheritance
 
 `bin/fm-spawn.sh` reads the file on every spawn and relaunch, so a change takes effect at the next launch; a running worker keeps the window it launched with.
+Interactive Claude task metadata records that launch's effective `autocompact=` value, so supervision compares symptoms with the launched window rather than a subsequently edited config.
+A recovery can omit the flag for one task without changing shared configuration through `bin/fm-control.sh relaunch`'s `--autocompact off` option; the script header owns its restrictions and syntax.
+The resulting task-local `autocompact_override=off` survives later relaunches, including harness switches, and never changes other tasks' windows.
+The [stuck-worker recovery playbook](../.agents/skills/stuck-crewmate-recovery/SKILL.md#claude-premature-auto-compaction-loop) owns recognition of the premature compact/refill/idle loop and guarded recovery.
 The file is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own Claude crewmates compact at the same window.
 
 [Runtime backend verification](verification/runtime-backends.md#claude-auto-compact-window) records the CLI evidence and names the live guard that refreshes it.
