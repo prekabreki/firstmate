@@ -1,0 +1,21 @@
+=== spawn into the project's OWN pool via a symlinked project path and symlinked TREEHOUSE_ROOT (must not read as a mismatch)
+$ TREEHOUSE_ROOT=$LAB/th-link bin/fm-spawn.sh r3-sym $LAB/projects-link/demo --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+warning: $LAB/home/data/r3-sym/launch-brief.md records no ship branch; defaulting to legacy branch fm/r3-sym
+warning: $LAB/home/data/r3-sym/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: r3-sym ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned r3-sym harness=codex kind=ship mode=local-only yolo=off window=primary:fm-r3-sym worktree=$LAB/th/.treehouse/demo-f8ee86/1/demo
+EXIT=0
+--- lab tmux windows
+primary:0: bash* (1 panes) [200x50] 
+primary:1: fm-r3-sym (1 panes) [200x50] 
+--- state/
+home-summary.json
+.last-watcher-beat
+r3-sym.git-hooks
+r3-sym.meta
+--- treehouse status
+[{"name":"1","path":"$LAB/th/.treehouse/demo-f8ee86/1/demo","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":1613864,"name":"bash"},{"pid":1614989,"name":"node"},{"pid":1614997,"name":"codex"}]}]
+
+--- slot common dir
+$LAB/home/projects/demo/.git

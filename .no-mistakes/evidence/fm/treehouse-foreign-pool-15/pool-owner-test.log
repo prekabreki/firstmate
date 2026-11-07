@@ -1,0 +1,11 @@
+ok - a pool owned by another clone is refused before any pane, record, or lease
+ok - a slot found foreign after leasing is refused and its clean lease returned
+ok - a foreign slot holding work keeps its lease and names the release
+ok - a slot found foreign after a Herdr lease closes the empty task tab and returns the lease
+ok - a refused guarded close of the Herdr race tab is not forced and the tab is reported
+ok - a slot found foreign inside an interactive treehouse get closes the window holding it
+ok - symlinked paths to the project's own clone and pool spawn normally
+ok - project-add intake warns about a pool owned by another clone
+ok - project-add intake accepts its own pool and reports an unreadable one
+# all fm-spawn-pool-owner tests passed
+exit=0

@@ -1,0 +1,14 @@
+$ bin/fm-treehouse-pool-owner.sh $LAB/home/projects/demo   # project clone, pool owned by w/private/demo
+warning: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-6067a4/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-6067a4' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone
+exit=1
+
+$ bin/fm-treehouse-pool-owner.sh $LAB/w/private/demo   # the owning clone itself
+ok: no slot in the Treehouse pool for '$LAB/w/private/demo' belongs to another clone
+exit=0
+
+$ bin/fm-treehouse-pool-owner.sh $LAB/home-link/projects/demo   # symlinked home, still foreign
+warning: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-6067a4/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-6067a4' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone
+exit=1
+
+$ treehouse status --json (after intake; no lease taken)
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]

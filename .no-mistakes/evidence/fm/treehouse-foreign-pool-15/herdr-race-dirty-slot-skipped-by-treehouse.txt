@@ -1,0 +1,6 @@
+=== herdr backend, race injected, foreign slot holds an untracked file 'notes.txt'
+exit=0
+--- real treehouse status after exit
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"dirty","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]},{"name":"2","path":"$LAB/th/.treehouse/demo-6067a4/2/demo","status":"leased","flavor":"git","lease_id":"809adce95981fd36526ce4f8771a7450","lease_holder":"herdr-race-dirty","leased_at":"2026-11-07T18:27:48.567581049+01:00","processes":[{"pid":994004,"name":"bash"},{"pid":996067,"name":"node"}]}]
+--- slot work preserved:
+unlanded

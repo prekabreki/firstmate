@@ -1,0 +1,30 @@
+=== captain remedy, exactly as the refusal prints it
+$ (cd $LAB/w/private/demo && treehouse destroy $LAB/th/.treehouse/demo-ea06ba --all)
+
+🌳 Dry run: would destroy 1 worktree in $LAB/th/.treehouse/demo-ea06ba and reclaim 182 B.
+  1     [disposable]  182 B  $LAB/th/.treehouse/demo-ea06ba/1/demo
+🌳 Re-run with --yes to destroy this worktree.
+$ ... --all --yes
+
+🌳 Destroyed 1 worktree in $LAB/th/.treehouse/demo-ea06ba and freed 182 B.
+  1     [disposable]  182 B  $LAB/th/.treehouse/demo-ea06ba/1/demo
+=== intake after remedy
+ok: no slot in the Treehouse pool for '$LAB/home/projects/demo' belongs to another clone
+exit=0
+=== spawn after remedy (proceeds past the owner check into a fresh slot)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+spawned pool-foreign harness=codex kind=ship mode=local-only yolo=off window=primary:fm-pool-foreign worktree=$LAB/th/.treehouse/demo-ea06ba/1/demo
+EXIT=0
+--- lab tmux windows
+primary:0: bash* (1 panes) [160x40] 
+primary:1: fm-pool-foreign (1 panes) [160x40] 
+--- state/
+.fm-lab-tmux-dir
+home-summary.json
+.last-watcher-beat
+pool-foreign.git-hooks
+pool-foreign.meta
+--- real treehouse status
+[{"name":"1","path":"$LAB/th/.treehouse/demo-ea06ba/1/demo","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":1432420,"name":"bash"},{"pid":1433509,"name":"node"},{"pid":1433565,"name":"codex"}]}]
+--- slot common dir
+$LAB/home/projects/demo/.git

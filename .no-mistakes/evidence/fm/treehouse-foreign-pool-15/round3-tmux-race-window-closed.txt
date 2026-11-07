@@ -1,0 +1,14 @@
+=== round 3: tmux backend (codex harness), race injected: shim hides only 'treehouse status --json'; 'treehouse get' in the new window is real
+$ PATH=$LAB/shim:$PATH bin/fm-spawn.sh r3-trace $LAB/home/projects/demo --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+warning: $LAB/home/data/r3-trace/launch-brief.md records no ship branch; defaulting to legacy branch fm/r3-trace
+warning: $LAB/home/data/r3-trace/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: r3-trace ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: spawn refused: Treehouse pool '$LAB/th/.treehouse/demo-f8ee86' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-f8ee86/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-f8ee86' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone; window primary:fm-r3-trace, whose treehouse get held the slot, was closed, returning it to the pool
+EXIT=1
+--- lab tmux windows after
+primary:0: bash* (1 panes) [200x50] 
+--- state/
+.last-watcher-beat
+--- real treehouse status
+[{"name":"1","path":"$LAB/th/.treehouse/demo-f8ee86/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]

@@ -1,0 +1,21 @@
+=== round 2: herdr backend (lab session), race injected: shim hides only 'treehouse status --json'; lease/return are real treehouse
+$ HERDR_SESSION=<fm-lab> bin/fm-spawn.sh pool-race2 $LAB/home/projects/demo --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+warning: $LAB/home/data/pool-race2/launch-brief.md records no ship branch; defaulting to legacy branch fm/pool-race2
+warning: $LAB/home/data/pool-race2/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: pool-race2 ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+A new version of treehouse is available: v2.3.0 → v3.1.8
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at $LAB/th/.treehouse/demo-ea06ba/1/demo. Run 'treehouse return $LAB/th/.treehouse/demo-ea06ba/1/demo' to release it.
+error: spawn refused: Treehouse pool '$LAB/th/.treehouse/demo-ea06ba' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-ea06ba/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-ea06ba' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone; the lease this spawn took on $LAB/th/.treehouse/demo-ea06ba/1/demo was returned
+exit=1
+--- real treehouse status after exit
+[{"name":"1","path":"$LAB/th/.treehouse/demo-ea06ba/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+--- herdr lab panes
+{"id":"cli:pane:list","result":{"panes":[{"agent_status":"unknown","cwd":"$LAB/home/projects/demo","focused":true,"foreground_cwd":"$LAB/home/projects/demo","pane_id":"w1:p2","revision":1,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65fb329582fe72","terminal_title":"prekabreki@LinuxHeima:$LAB/home/projects/demo","terminal_title_stripped":"prekabreki@LinuxHeima:$LAB/home/projects/demo","workspace_id":"w1"}],"type":"pane_list"}}
+--- state/
+.fm-lab-tmux-dir
+.last-watcher-beat

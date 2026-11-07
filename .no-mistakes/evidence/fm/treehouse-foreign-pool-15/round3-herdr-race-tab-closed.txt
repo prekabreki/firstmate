@@ -1,0 +1,21 @@
+=== round 3: herdr backend (lab session fm-lab-r3race-1592409-25538), race injected: shim hides only 'treehouse status --json'; lease/return/pane close are real
+$ HERDR_SESSION=<fm-lab> PATH=$LAB/shim:$PATH bin/fm-spawn.sh r3-hrace $LAB/home/projects/demo --backend herdr --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+warning: $LAB/home/data/r3-hrace/launch-brief.md records no ship branch; defaulting to legacy branch fm/r3-hrace
+warning: $LAB/home/data/r3-hrace/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: r3-hrace ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+A new version of treehouse is available: v2.3.0 → v3.1.8
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at $LAB/th/.treehouse/demo-f8ee86/1/demo. Run 'treehouse return $LAB/th/.treehouse/demo-f8ee86/1/demo' to release it.
+error: spawn refused: Treehouse pool '$LAB/th/.treehouse/demo-f8ee86' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-f8ee86/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-f8ee86' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone; the lease this spawn took on $LAB/th/.treehouse/demo-f8ee86/1/demo was returned; the empty task tab fm-lab-r3race-1592409-25538:w1:p2 this spawn opened was closed
+EXIT=1
+--- real treehouse status after exit
+[{"name":"1","path":"$LAB/th/.treehouse/demo-f8ee86/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+--- herdr lab workspaces / panes after exit
+{"id":"cli:workspace:list","result":{"type":"workspace_list","workspaces":[]}}
+{"id":"cli:pane:list","result":{"panes":[],"type":"pane_list"}}
+--- state/
+.last-watcher-beat

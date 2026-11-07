@@ -1,0 +1,12 @@
+=== tmux backend (codex harness), race injected (shim hides only 'treehouse status --json'; 'treehouse get' is real)
+$ bin/fm-spawn.sh pool-race $LAB/home/projects/demo --mode local-only --yolo off
+error: spawn refused: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: ... Firstmate never destroys the pool or touches the other clone; inspect window primary:fm-pool-race
+EXIT=1
+--- lab tmux windows after exit
+primary:0: bash* (1 panes) [80x24]
+primary:1: fm-pool-race (1 panes) [80x24]
+--- state/: (empty)
+--- real treehouse status after exit (slot stays held by the leftover window's `treehouse get` subshell)
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":894210,"name":"bash"}]}]
+--- window content: "Entered worktree at $LAB/th/.treehouse/demo-6067a4/1/demo. Type 'exit' to return."
+(Closing the window by hand returned the slot to "available".)

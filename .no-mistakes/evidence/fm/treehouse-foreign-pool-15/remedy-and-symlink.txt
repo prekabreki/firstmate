@@ -1,0 +1,32 @@
+$ (cd $LAB/w/private/demo && treehouse destroy $POOL --all --yes)   # the remedy the refusal names, run as the captain would
+
+🌳 Destroyed 0 worktrees in $LAB/th/.treehouse/demo-6067a4.
+🌳 Skipped 3 worktrees:
+  1     [unmerged]    $LAB/th/.treehouse/demo-6067a4/1/demo  re-run with --include-unlanded to include
+  2     [disposable]  $LAB/th/.treehouse/demo-6067a4/2/demo  VCS refused to remove worktree: git worktree remove --force $LAB/th/.treehouse/demo-6067a4/2/demo: fatal: '$LAB/th/.treehouse/demo-6067a4/2/demo' is not a working tree
+  3     [disposable]  $LAB/th/.treehouse/demo-6067a4/3/demo  VCS refused to remove worktree: git worktree remove --force $LAB/th/.treehouse/demo-6067a4/3/demo: fatal: '$LAB/th/.treehouse/demo-6067a4/3/demo' is not a working tree
+$ treehouse status --json (from project)
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]},{"name":"2","path":"$LAB/th/.treehouse/demo-6067a4/2/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]},{"name":"3","path":"$LAB/th/.treehouse/demo-6067a4/3/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+$ (cd projects/demo && treehouse get --lease) ; treehouse return   # pool now built from the project clone
+slot $LAB/th/.treehouse/demo-6067a4/2/demo common-dir: $LAB/home/projects/demo/.git
+$ bin/fm-treehouse-pool-owner.sh $LAB/home-link/projects/demo   # via symlinked home
+warning: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-6067a4/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-6067a4' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone
+exit=1
+$ bin/fm-treehouse-pool-owner.sh $LAB/w/private/demo   # the other clone now sees a pool owned by projects/demo
+warning: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-6067a4/2/demo' is a worktree of '$LAB/home/projects/demo', not of '$LAB/w/private/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/home/projects/demo' && treehouse destroy '$LAB/th/.treehouse/demo-6067a4' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/w/private/demo'. Firstmate never destroys the pool or touches the other clone
+exit=1
+
+=== after discarding the planted test commit in slot 1, rerun the remedy
+🌳 Destroyed 1 worktree in $LAB/th/.treehouse/demo-6067a4 and freed 182 B.
+  1     [disposable]  182 B  $LAB/th/.treehouse/demo-6067a4/1/demo
+🌳 Skipped 2 worktrees:
+  2     [disposable]  $LAB/th/.treehouse/demo-6067a4/2/demo  VCS refused to remove worktree: git worktree remove --force $LAB/th/.treehouse/demo-6067a4/2/demo: fatal: '$LAB/th/.treehouse/demo-6067a4/2/demo' is not a working tree
+  3     [disposable]  $LAB/th/.treehouse/demo-6067a4/3/demo  VCS refused to remove worktree: git worktree remove --force $LAB/th/.treehouse/demo-6067a4/3/demo: fatal: '$LAB/th/.treehouse/demo-6067a4/3/demo' is not a working tree
+$ treehouse status --json
+["2","available"]
+["3","available"]
+$LAB/th/.treehouse/demo-6067a4/2/demo -> $LAB/home/projects/demo/.git
+$LAB/th/.treehouse/demo-6067a4/3/demo -> $LAB/home/projects/demo/.git
+$ bin/fm-treehouse-pool-owner.sh $LAB/home-link/projects/demo   # symlinked home, own pool
+ok: no slot in the Treehouse pool for '$LAB/home/projects/demo' belongs to another clone
+exit=0

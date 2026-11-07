@@ -1,0 +1,12 @@
+=== herdr backend, race injected, foreign slot 1 clean but HEAD=c2a74b8ebae08800cf1391fd26dcfac5c9424117 is an unpushed commit
+exit=0
+--- real treehouse status after exit
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]},{"name":"2","path":"$LAB/th/.treehouse/demo-6067a4/2/demo","status":"dirty","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]},{"name":"3","path":"$LAB/th/.treehouse/demo-6067a4/3/demo","status":"leased","flavor":"git","lease_id":"0e63ae14706eb48ce7da2db50da42c57","lease_holder":"herdr-race-unpushed","leased_at":"2026-11-07T18:28:23.426686484+01:00","processes":[{"pid":1014243,"name":"bash"},{"pid":1016450,"name":"node"},{"pid":1016478,"name":"codex"}]}]
+--- slot 1 HEAD: c2a74b8ebae08800cf1391fd26dcfac5c9424117 (commit preserved: yes)
+--- state/
+.guard-watcher-stale-banner
+herdr-race-dirty.git-hooks
+herdr-race-dirty.meta
+herdr-race-unpushed.git-hooks
+herdr-race-unpushed.meta
+home-summary.json

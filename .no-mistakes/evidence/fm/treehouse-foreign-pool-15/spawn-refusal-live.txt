@@ -1,0 +1,15 @@
+$ bin/fm-spawn.sh pool-foreign $LAB/home/projects/demo --mode local-only --yolo off   (real treehouse, lab tmux socket)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB/home
+error: spawn refused: Treehouse pool '$LAB/th/.treehouse/demo-6067a4' belongs to another clone of this repository: its slot '$LAB/th/.treehouse/demo-6067a4/1/demo' is a worktree of '$LAB/w/private/demo', not of '$LAB/home/projects/demo', so a worktree leased from it would be that other clone's copy. Treehouse keys a pool on the repository, not the clone, so only the captain clears it, from the owning clone: preview with (cd '$LAB/w/private/demo' && treehouse destroy '$LAB/th/.treehouse/demo-6067a4' --all), then rerun that with --yes to remove its disposable slots; the next spawn then builds the pool from '$LAB/home/projects/demo'. Firstmate never destroys the pool or touches the other clone
+EXIT=1
+
+--- after refusal: lab tmux windows
+primary:0: bash* (1 panes) [80x24] 
+--- state/ contents
+--- treehouse status --json (lease_holder empty = no stray lease)
+[{"name":"1","path":"$LAB/th/.treehouse/demo-6067a4/1/demo","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+--- foreign slot git status (untouched)
+demo
+--- owning clone worktree list (untouched)
+$LAB/w/private/demo                   4f32afe [main]
+$LAB/th/.treehouse/demo-6067a4/1/demo 4f32afe (detached HEAD)
