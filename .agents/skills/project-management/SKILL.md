@@ -66,6 +66,7 @@ The optional `pr=manual` token marks a `no-mistakes` project whose PR title and 
 
 Confirm the source URL, local project name, delivery posture, and autonomy posture, stating the resolved default for each rather than asking the captain to invent one.
 Clone into `projects/<name>` and add the registry entry only after the destination is known to be unused.
+Once the clone exists, run `bin/fm-treehouse-pool-owner.sh projects/<name>`: a `warning:` means Treehouse's pool for that repository already belongs to another clone, so spawns for the project will refuse until the captain runs the remedy it names from that other clone; relay it to the captain and never run the remedy yourself.
 A `no-mistakes` or `no-mistakes-prod-only` project must have an `origin` remote and must complete the initialization procedure below, because a conditional policy's product-facing work runs the pipeline while its internal-only work still takes the direct PR.
 A `direct-PR` project needs an `origin` remote but skips no-mistakes initialization.
 A `local-only` project may have no remote and skips no-mistakes initialization.
