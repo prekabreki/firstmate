@@ -1,7 +1,7 @@
 ---
 name: stuck-crewmate-recovery
 description: >-
-  Load when the session-start digest reports an ordinary direct report's endpoint dead or its metadata has no window, after a stale wake, looping pane, repeated confusion, an answered-by-brief question, an unresponsive crewmate, or a failed steer, after observing a defeated Claude or Codex bypass, and when a live crewmate reports its no-mistakes pipeline dead, unreachable, or timed out.
+  Load when the session-start digest reports an ordinary direct report's endpoint dead or its metadata has no window, after a stale wake, premature Claude auto-compaction loop, looping pane, repeated confusion, an answered-by-brief question, an unresponsive crewmate, or a failed steer, after observing a defeated Claude or Codex bypass, and when a live crewmate reports its no-mistakes pipeline dead, unreachable, or timed out.
 user-invocable: false
 metadata:
   internal: true
@@ -52,6 +52,20 @@ Do not work around these refusals by respawning; preserve the recorded task and 
 That reclaim is the owning home's operation only, and a secondmate is the one exception: recover it through `bin/fm-spawn.sh <id> --secondmate` as above.
 Do not use a fresh generic spawn while the recorded worktree is unaccounted for, because allocating another worktree can split one task across two copies.
 If the worktree or ownership cannot be reconciled safely, leave all state intact and report the task failed or blocked with the conflicting evidence.
+
+## Claude premature auto-compaction loop
+
+Treat a Claude worker as stuck when all three observations agree: its footer repeatedly reaches `0% until auto-compact`, its actual context use is well below the window it launched with, and after compacting it refills and becomes idle without advancing the task.
+A fresh worker showing `1-2% until auto-compact` at about 13% context use is an early warning, not sufficient proof by itself.
+Compare token counts with the task's recorded `autocompact=` window; for older records without that field, confirm the launch flag rather than assuming today's shared config was used.
+Confirm the denominator of any percentage before converting it to tokens: Claude's `/context` can report usage against the explicit auto-compact window rather than the model's full context capacity.
+Require use below half the recorded window, plus the repeated compact/refill/idle behavior; a healthy worker compacting near its configured window, a busy compaction, an ordinary low-context reading, or a task already waiting on an authoritative pipeline is not this failure.
+For example, 130-140k use under a recorded 400k window qualifies for investigation; the same use under a 200k window does not prove premature compaction.
+
+Once confirmed, preserve the progress note and recover only that worker through the ordinary guarded relaunch with its task-local flag omission (`bin/fm-control.sh`'s `--autocompact off`; its header owns syntax and persistence).
+Never edit and restore `config/crew-autocompact` for recovery, since other simultaneous launches would inherit the temporary change.
+A task already recording `autocompact_override=off` needs ordinary stuck-worker diagnosis instead of repeatedly applying the same remedy.
+On a backend without replacement support, preserve the task and report the limitation under the ordinary recovery contract.
 
 ## A live crewmate claiming the pipeline is dead
 

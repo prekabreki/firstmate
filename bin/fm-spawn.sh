@@ -129,7 +129,7 @@
 #   passed as --pro <harness>:<model> (the matched dispatch rule's `pro`), and
 #   a successful launch or relaunch claims the issue as in-progress. --pro is
 #   recorded as executor_pro= so bin/fm-control.sh can relaunch onto it.
-#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>] [--account <entry>]
+#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>] [--account <entry>] [--autocompact off]
 #   --relaunch launches a replacement agent for an EXISTING task into that
 #   task's own recorded worktree, reusing its recorded endpoint when that
 #   endpoint still exists, instead of creating either from scratch. It is
@@ -546,17 +546,19 @@
 #   on every spawn and relaunch, so a change reaches the next launch without a
 #   restart, and it is inherited into secondmate homes (bin/fm-config-inherit-lib.sh).
 # Claude auto-compact window (config/crew-autocompact):
-#   One token setting the auto-compact window every interactive claude launch
-#   (ship, scout, secondmate, and relaunch) passes as `--autocompact <tokens>`,
-#   so a worker on a 1M-context model compacts long before it fills that window.
-#   Absent means the tracked default 200000; a whole number from 100000 to
+#   One token selecting the auto-compact window every interactive claude launch
+#   (ship, scout, secondmate, and relaunch) passes as `--autocompact <tokens>`.
+#   Absent means off (no flag); a whole number from 100000 to
 #   1000000 (the range the Claude CLI accepts) sets that window; `off` omits the
 #   flag and leaves Claude's own default. An executor's one-shot `claude -p`
 #   carries no flag, and the window does not apply on the t3code backend, where
 #   Claude runs on its own default. Any other value, or an unreadable file,
 #   refuses the spawn before any endpoint, worktree, or record exists and names
-#   the accepted values. The file is read on every spawn and relaunch and is
-#   inherited into secondmate homes (bin/fm-config-inherit-lib.sh). It is independent of the
+#   the accepted values. --relaunch --autocompact off omits the flag only for
+#   this task and records autocompact_override=off for later relaunches, without
+#   changing the config file. Interactive Claude task metadata also records the
+#   effective autocompact= window (off or a token count) for supervision.
+#   The file is read on every launch and inherited into secondmate homes (bin/fm-config-inherit-lib.sh). It is independent of the
 #   COMPACT_ADVISER_DISABLE floor below, which turns the compact adviser off.
 #   docs/configuration.md "Claude auto-compact window" owns the operator contract.
 # Codex approval mode (config/codex-approval-mode):
@@ -937,7 +939,7 @@ esac
 if ! CREW_AUTOCOMPACT_PRESENT=$(fm_config_source_present "$CONFIG/crew-autocompact"); then
   exit 1
 fi
-CREW_AUTOCOMPACT=200000
+CREW_AUTOCOMPACT=off
 if [ "$CREW_AUTOCOMPACT_PRESENT" = 1 ]; then
   if [ ! -f "$CONFIG/crew-autocompact" ] || [ ! -r "$CONFIG/crew-autocompact" ]; then
     echo "error: config/crew-autocompact must be a readable regular file holding a token count from 100000 to 1000000, or off" >&2
@@ -948,7 +950,7 @@ if [ "$CREW_AUTOCOMPACT_PRESENT" = 1 ]; then
   off) ;;
   [1-9][0-9][0-9][0-9][0-9][0-9] | 1000000) ;;
   *)
-    echo "error: config/crew-autocompact holds '$CREW_AUTOCOMPACT'; accepted values are: a whole token count from 100000 to 1000000 (the default is 200000 when the file is absent), or off (no --autocompact flag)" >&2
+    echo "error: config/crew-autocompact holds '$CREW_AUTOCOMPACT'; accepted values are: a whole token count from 100000 to 1000000 (the default is off when the file is absent), or off (no --autocompact flag)" >&2
     exit 1
     ;;
   esac
@@ -1125,6 +1127,8 @@ BASE_BRANCH_SET=0
 UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
 TRACEPARENT_SET=0
+AUTOCOMPACT_OVERRIDE=
+AUTOCOMPACT_OVERRIDE_SET=0
 ACCOUNT_ARG=
 ACCOUNT_SET=0
 RELAUNCH=0
@@ -1193,6 +1197,11 @@ for a in "$@"; do
     traceparent)
       TRACEPARENT_ARG=$a
       TRACEPARENT_SET=1
+      ;;
+    autocompact)
+      [ "$a" = off ] || { echo "error: --autocompact accepts only off" >&2; exit 1; }
+      AUTOCOMPACT_OVERRIDE=$a
+      AUTOCOMPACT_OVERRIDE_SET=1
       ;;
     account)
       ACCOUNT_ARG=$a
@@ -1296,6 +1305,12 @@ for a in "$@"; do
     TRACEPARENT_ARG=${a#--traceparent=}
     TRACEPARENT_SET=1
     ;;
+  --autocompact) want_value=autocompact ;;
+  --autocompact=*)
+    AUTOCOMPACT_OVERRIDE=${a#--autocompact=}
+    AUTOCOMPACT_OVERRIDE_SET=1
+    [ -n "$AUTOCOMPACT_OVERRIDE" ] || { echo "error: --autocompact requires off" >&2; exit 1; }
+    ;;
   --account) want_value=account ;;
   --account=*)
     ACCOUNT_ARG=${a#--account=}
@@ -1304,6 +1319,11 @@ for a in "$@"; do
   *) POS+=("$a") ;;
   esac
 done
+case "$AUTOCOMPACT_OVERRIDE" in
+  '') ;;
+  off) [ "$RELAUNCH" -eq 1 ] || { echo "error: --autocompact applies to --relaunch only" >&2; exit 1; } ;;
+  *) echo "error: --autocompact accepts only off" >&2; exit 1 ;;
+esac
 [ -z "$want_value" ] || {
   echo "error: --$want_value requires a value" >&2
   exit 1
@@ -2869,6 +2889,15 @@ if [ "$RELAUNCH" -eq 1 ]; then
     FM_REX_TASK_BLOCK_ID=$(fm_meta_get "$RELAUNCH_META" rex_block_id)
     FM_REX_TASK_SERVER=$(fm_meta_get "$RELAUNCH_META" rex_server)
   fi
+  if [ -z "$AUTOCOMPACT_OVERRIDE" ]; then
+    AUTOCOMPACT_OVERRIDE=$(fm_meta_get "$RELAUNCH_META" autocompact_override)
+  fi
+  case "$AUTOCOMPACT_OVERRIDE" in
+    '') ;;
+    off) CREW_AUTOCOMPACT=off; CLAUDE_AUTOCOMPACT_FLAG= ;;
+    *) echo "error: invalid recorded autocompact override '$AUTOCOMPACT_OVERRIDE'" >&2; exit 1 ;;
+  esac
+
   # With no explicit harness, a relaunch reuses the harness already recorded
   # for this task. It must NOT fall through to the fresh-spawn config
   # resolution, which would silently move an existing task onto whatever the
@@ -3123,10 +3152,9 @@ launch_template() {
   # selects (header above): --dangerously-skip-permissions by default, or
   # --permission-mode auto when configured.
   # __CLAUDEAUTOCOMPACT__ is the auto-compact window config/crew-autocompact
-  # selects (header above). Claude's own default lets a 1M-context worker grow
-  # toward the full window, re-sending all of it every turn; compaction keeps
-  # task continuity, so interactive launches compact at a bounded window. An
-  # executor is a one-shot and carries no window.
+  # selects (header above): empty by default, so Claude's own auto-compact
+  # policy applies unless an explicit window is configured. An executor is a
+  # one-shot and carries no window.
   # __CLAUDEADDDIRS__ is the task-channel directory grant
   # claude_add_dirs_flag below builds: Claude path-checks Read/Glob/Grep (and
   # an Edit's mandatory prior Read) against cwd plus --add-dir, and since
@@ -3754,6 +3782,12 @@ if [ "$KIND" = secondmate ] && [ -z "$ARG3" ]; then
   fi
 fi
 fm_backend_validate_harness "$BACKEND" "$HARNESS" || exit 1
+if [ "$AUTOCOMPACT_OVERRIDE_SET" -eq 1 ]; then
+  [ "$HARNESS" = claude ] && [ "$KIND" != executor ] && [ "$BACKEND" != t3code ] || {
+    echo "error: --autocompact off requires an interactive Claude task outside t3code" >&2
+    exit 1
+  }
+fi
 # Ultra is an explicit native capability, never a Pi thinking-level alias.
 # Validate the fully resolved profile before worktree or endpoint provisioning.
 if [ "$EFFORT" = ultra ]; then
@@ -7703,7 +7737,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness hermes_profile hermes_home kind mode yolo issue posture_consent executor_base executor_launched branch tasktmp base_branch upstream_consent forge backup_remote backup_prefix model effort opencode_version account account_provider omp_profile busy_gen spawn_gen approval_mode traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id paseo_terminal_id paseo_workspace_id rex_server rex_session_id rex_window_id rex_block_id t3_thread_id t3_project_id tern_session_id tern_tab_id tern_block_id hc_session hc_terminal home projects control_relaunch_tx polytoken_session polytoken_port polytoken_credential", keys, " ")
+      split("autocompact autocompact_override window endpoint_task_id worktree project harness hermes_profile hermes_home kind mode yolo issue posture_consent executor_base executor_launched branch tasktmp base_branch upstream_consent forge backup_remote backup_prefix model effort opencode_version account account_provider omp_profile busy_gen spawn_gen approval_mode traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id paseo_terminal_id paseo_workspace_id rex_server rex_session_id rex_window_id rex_block_id t3_thread_id t3_project_id tern_session_id tern_tab_id tern_block_id hc_session hc_terminal home projects control_relaunch_tx polytoken_session polytoken_port polytoken_credential", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -7755,6 +7789,10 @@ preserve_relaunch_meta() {
   [ "$HARNESS" != hermes ] || { echo "hermes_profile=$HERMES_PROFILE"; echo "hermes_home=$HERMES_PROFILE_HOME"; }
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"
   echo "spawn_gen=$SPAWN_GEN"
+  [ -z "$AUTOCOMPACT_OVERRIDE" ] || echo "autocompact_override=$AUTOCOMPACT_OVERRIDE"
+  if [ "$HARNESS" = claude ] && [ "$KIND" != executor ] && [ "$BACKEND" != t3code ]; then
+    echo "autocompact=$CREW_AUTOCOMPACT"
+  fi
   # Default-off writes no traceparent= line.
   # backend= is written only for a non-default (non-tmux) backend, so the
   # default path's meta stays byte-identical (absent backend= means tmux;

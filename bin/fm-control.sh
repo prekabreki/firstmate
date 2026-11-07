@@ -4,7 +4,7 @@
 #
 # Usage: fm-control.sh <task-id> interrupt
 #        fm-control.sh <task-id> exit
-#        fm-control.sh <task-id> relaunch [--harness <name>] [--model <name>]
+#        fm-control.sh <task-id> relaunch [--autocompact off] [--harness <name>] [--model <name>]
 #                                         [--effort <level>] [--account <entry>]
 #                                         (--note <text> | --note-file <path>)
 #
@@ -102,6 +102,10 @@
 #              inherits the local copy but none of the conversation; a
 #              secondmate reconciles its own home's records at startup, so its
 #              standing charter is never rewritten.
+#              --autocompact off omits Claude's window flag for this task,
+#              recording autocompact_override=off so later relaunches retain it.
+#              It never changes config/crew-autocompact; other tasks keep their
+#              configured window. Refused for non-Claude, executor, or T3 tasks.
 #              Records a durable checkpoint and that note, exits the old agent,
 #              then delegates the launch to its single owner,
 #              bin/fm-spawn.sh --relaunch. A failure before publication keeps
@@ -293,6 +297,7 @@ NEW_HARNESS=
 NEW_MODEL=
 NEW_EFFORT=
 NEW_ACCOUNT=
+NEW_AUTOCOMPACT=
 HARNESS_SET=0
 MODEL_SET=0
 EFFORT_SET=0
@@ -310,6 +315,7 @@ for control_arg in "$@"; do
       model) NEW_MODEL=$control_arg; MODEL_SET=1 ;;
       effort) NEW_EFFORT=$control_arg; EFFORT_SET=1 ;;
       account) NEW_ACCOUNT=$control_arg; ACCOUNT_SET=1 ;;
+      autocompact) [ "$control_arg" = off ] || die "--autocompact accepts only off"; NEW_AUTOCOMPACT=$control_arg ;;
       note) NOTE=$control_arg; NOTE_SET=1 ;;
       note_file)
         [ -f "$control_arg" ] || die "--note-file '$control_arg' is not a readable file"
@@ -327,6 +333,8 @@ for control_arg in "$@"; do
     --model=*) NEW_MODEL=${control_arg#--model=}; MODEL_SET=1 ;;
     --effort) control_want_value=effort ;;
     --effort=*) NEW_EFFORT=${control_arg#--effort=}; EFFORT_SET=1 ;;
+    --autocompact) control_want_value=autocompact ;;
+    --autocompact=*) NEW_AUTOCOMPACT=${control_arg#--autocompact=}; [ -n "$NEW_AUTOCOMPACT" ] || die "--autocompact requires off" ;;
     --account) control_want_value=account ;;
     --account=*) NEW_ACCOUNT=${control_arg#--account=}; ACCOUNT_SET=1 ;;
     --note) control_want_value=note ;;
@@ -346,9 +354,10 @@ if [ -n "$control_want_value" ]; then
 fi
 
 if [ "$VERB" != relaunch ]; then
-  [ "$HARNESS_SET" = 0 ] && [ "$MODEL_SET" = 0 ] && [ "$EFFORT_SET" = 0 ] && [ "$ACCOUNT_SET" = 0 ] && [ "$NOTE_SET" = 0 ] \
-    || die "--harness, --model, --effort, --account, and --note apply to 'relaunch' only"
+  [ "$HARNESS_SET" = 0 ] && [ "$MODEL_SET" = 0 ] && [ "$EFFORT_SET" = 0 ] && [ "$ACCOUNT_SET" = 0 ] && [ "$NOTE_SET" = 0 ] && [ -z "$NEW_AUTOCOMPACT" ] \
+    || die "--harness, --model, --effort, --account, --autocompact, and --note apply to 'relaunch' only"
 fi
+case "$NEW_AUTOCOMPACT" in ""|off) ;; *) die "--autocompact accepts only off" ;; esac
 [ "$ACCOUNT_SET" = 0 ] || [ -n "$NEW_ACCOUNT" ] || die "--account requires a non-empty value"
 [ "$HARNESS_SET" = 0 ] || [ -n "$NEW_HARNESS" ] || die "--harness requires a non-empty value"
 [ "$MODEL_SET" = 0 ] || [ -n "$NEW_MODEL" ] || die "--model requires a non-empty value"
@@ -1242,6 +1251,14 @@ resolve_relaunch_profile() {
     [ -n "$hermes_home" ] || die 'recorded Hermes profile home is missing; refusing an unbound replacement'
     fm_hermes_gateway_check "$hermes_home" "$hermes_profile" || return 1
   fi
+  case "${NEW_AUTOCOMPACT:-$(fm_meta_get "$META" autocompact_override)}" in
+    ''|off) ;;
+    *) die "invalid recorded autocompact override; refusing before stopping the agent" ;;
+  esac
+  if [ -n "$NEW_AUTOCOMPACT" ]; then
+    [ "$TARGET_HARNESS" = claude ] && [ "$KIND" != executor ] && [ "$BACKEND" != t3code ] \
+      || die "--autocompact off requires an interactive Claude task outside t3code"
+  fi
   # The launch owner applies this home's worker account pin too, but only after
   # the old agent has been stopped, so a pin that no longer resolves or is
   # signed out must refuse here, while nothing has changed yet.
@@ -1450,6 +1467,7 @@ do_relaunch() {
   [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
   [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
   [ -z "$TARGET_ACCOUNT" ] || spawn_args+=(--account "$TARGET_ACCOUNT")
+  [ -z "$NEW_AUTOCOMPACT" ] || spawn_args+=(--autocompact "$NEW_AUTOCOMPACT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1

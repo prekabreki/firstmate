@@ -2531,7 +2531,7 @@ claude_worker_add_dirs() {  # <home> <id>
 }
 
 claude_expected_launch() {  # <launch> <home> <id> <permission-flag> [<autocompact-segment>]
-  local doorbell quoted autocompact=${5---autocompact 200000 }
+  local doorbell quoted autocompact=${5-}
   doorbell=$(claude_launch_brief_arg "$1")
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
@@ -2678,9 +2678,9 @@ test_non_claude_harness_ignores_claude_permission_mode() {
   pass "config/claude-permission-mode changes claude launches only"
 }
 
-# config/crew-autocompact (bin/fm-spawn.sh header): absent launches with the
-# tracked default window, a token count sets it, `off` omits the flag, and any
-# other value refuses before endpoint or metadata.
+# config/crew-autocompact (bin/fm-spawn.sh header): absent or `off` omits the
+# flag, a token count sets the window, and any other value refuses before
+# endpoint or metadata.
 test_crew_autocompact_value_sets_the_window() {
   local rec id out status launch expected
   id="autocompact-value-z24"
