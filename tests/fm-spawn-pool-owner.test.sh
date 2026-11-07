@@ -75,8 +75,13 @@ if [ "${1:-}" = status ] && [ "${2:-}" = --json ]; then
 fi
 [ "${1:-}" != server ] || exit 0
 case "${1:-} ${2:-}" in
-  'session list') exit 0 ;;
-  'pane close') : > "$D/pane-gone"; exit 0 ;;
+  'session list')
+    # A listed running session gives the presentation lock a socket to key on,
+    # so a guarded close can take it; without the file the lock is unavailable.
+    [ ! -f "$D/session-listed" ] ||
+      printf '{"sessions":[{"name":"%s","running":true,"socket_path":"%s/herdr.sock"}]}\n' "$HERDR_SESSION" "$D"
+    exit 0 ;;
+  'pane close') printf '%s\n' "${3:-}" >> "$D/pane-closed"; : > "$D/pane-gone"; exit 0 ;;
   'pane get')
     [ ! -f "$D/pane-gone" ] || { printf '{"error":{"code":"pane_not_found"}}\n'; exit 0; }
     printf '{"result":{"pane":{"pane_id":"%s","cwd":"%s","foreground_cwd":"%s"}}}\n' \
@@ -191,6 +196,36 @@ test_slot_turning_foreign_with_work_keeps_its_lease() {
   pass "a foreign slot holding work keeps its lease and names the release"
 }
 
+test_slot_turning_foreign_after_the_read_closes_its_herdr_tab() {
+  local id=pool-race-tab dir out status
+  dir=$(make_pool_case "$id" foreign)
+  printf '[]\n' > "$dir/fake/status.json"
+  : > "$dir/fake/session-listed"
+  out=$(run_pool_spawn "$dir" "$id" "$dir/project" "$dir/pool/1/repo")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn went on into a foreign slot"$'\n'"$out"
+  assert_grep 'tab create' "$dir/fake/herdr-log" "the race case never opened a task tab"
+  [ -e "$dir/fake/returned" ] || fail "a clean foreign lease was left held"$'\n'"$out"
+  grep -qx '%9' "$dir/fake/pane-closed" 2>/dev/null || fail "the empty task tab this spawn opened was left open"$'\n'"$out"
+  assert_contains "$out" "task tab default:%9 this spawn opened was closed" "the refusal did not report the closed tab"$'\n'"$out"
+  [ ! -e "$dir/home/state/$id.meta" ] || fail "the refusal published task metadata"
+  pass "a slot found foreign after a Herdr lease closes the empty task tab and returns the lease"
+}
+
+test_herdr_race_tab_close_refused_is_not_forced_and_is_reported() {
+  local id=pool-race-tab-locked dir out status
+  dir=$(make_pool_case "$id" foreign)
+  printf '[]\n' > "$dir/fake/status.json"
+  out=$(run_pool_spawn "$dir" "$id" "$dir/project" "$dir/pool/1/repo")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn went on into a foreign slot"$'\n'"$out"
+  [ -e "$dir/fake/returned" ] || fail "a clean foreign lease was left held"$'\n'"$out"
+  [ ! -e "$dir/fake/pane-closed" ] || fail "a close the guarded helper refused was forced"$'\n'"$out"
+  assert_contains "$out" "task tab default:%9 this spawn opened could not be closed safely and is still open" \
+    "the refusal did not report the residual tab"$'\n'"$out"
+  pass "a refused guarded close of the Herdr race tab is not forced and the tab is reported"
+}
+
 test_slot_turning_foreign_in_an_interactive_get_closes_its_window() {
   local id=pool-race-tmux dir out status
   dir=$(make_pool_case "$id" foreign)
@@ -261,6 +296,8 @@ test_intake_accepts_its_own_pool_and_reports_an_unreadable_one() {
 test_foreign_pool_refuses_before_any_pane_record_or_lease
 test_slot_turning_foreign_after_the_read_returns_its_clean_lease
 test_slot_turning_foreign_with_work_keeps_its_lease
+test_slot_turning_foreign_after_the_read_closes_its_herdr_tab
+test_herdr_race_tab_close_refused_is_not_forced_and_is_reported
 test_slot_turning_foreign_in_an_interactive_get_closes_its_window
 test_symlinked_paths_to_the_same_clone_are_not_a_mismatch
 test_intake_warns_about_a_foreign_pool

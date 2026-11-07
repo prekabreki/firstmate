@@ -5087,6 +5087,24 @@ spawn_refuse_foreign_slot() { # <durable-lease: 0|1>
     else
       lease_note="; $WT stays leased to $ID because it holds work or could not be returned; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS"
     fi
+    # The flat Herdr task tab this spawn opened holds only a shell in the
+    # project, so it is closed through the presentation-lock-guarded kill. A
+    # close that helper refuses is never forced: only a pane Herdr reports gone
+    # counts as closed, and any other is named for the operator. A projected
+    # tab's own abort cleanup closes it, and T3 opens no endpoint before this.
+    if [ "$BACKEND" = herdr ] && [ "$HERDR_PROJECTION_ABORT_CLEANUP" != 1 ]; then
+      if spawn_endpoint_closes_on_abort; then
+        lease_note="$lease_note; $(spawn_endpoint_hint)"
+      else
+        fm_backend_kill herdr "$T" || true
+        if fm_backend_herdr_endpoint_confirmed_gone "$T"; then
+          SPAWN_ENDPOINT_CLOSED=1
+          lease_note="$lease_note; the empty task tab $T this spawn opened was closed"
+        else
+          lease_note="$lease_note; the empty task tab $T this spawn opened could not be closed safely and is still open; close it by hand"
+        fi
+      fi
+    fi
   elif spawn_endpoint_closes_on_abort; then
     lease_note="; $(spawn_endpoint_hint)"
   else
