@@ -209,6 +209,10 @@
 #   meta's backend_detect= line.
 #   Herdr leases its slot durably (treehouse get --lease) and moves the pane's
 #   top-level shell into it, because a restart restores that shell's cwd.
+#   Every treehouse spawn first refuses a pool whose slots belong to another
+#   clone of the repository, before any endpoint, record, or lease, and refuses
+#   a freshly acquired foreign slot, returning a durable lease that holds no
+#   work (bin/fm-treehouse-pool-lib.sh owns the detection and remedy wording).
 #   codex-app is not a known backend yet; docs/codex-app-backend.md owns that
 #   blocked backend contract. Default tmux spawns do not write backend= to meta;
 #   absent backend= means tmux. Orca, cmux, paseo, tern, and hc do not support
@@ -1047,6 +1051,8 @@ fi
 . "$SCRIPT_DIR/fm-ff-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
+# shellcheck source=bin/fm-treehouse-pool-lib.sh
+. "$SCRIPT_DIR/fm-treehouse-pool-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
 . "$SCRIPT_DIR/fm-classify-lib.sh"
 fm_backlog_directory_present "$STATE" "state directory" || {
@@ -4590,6 +4596,16 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
   fi
 fi
+# A Treehouse pool keyed to this repository can already hold slots of another
+# clone of it (bin/fm-treehouse-pool-lib.sh). Refuse here, under the project
+# lock and before any endpoint, record, or lease exists, so the refusal leaves
+# nothing behind. An unreadable pool is left to the lease itself, which
+# spawn_refuse_foreign_slot checks again.
+if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ] &&
+  fm_treehouse_pool_foreign_owner "$PROJ_ABS"; then
+  echo "error: spawn refused: $(fm_treehouse_foreign_pool_message "$PROJ_ABS")" >&2
+  exit 1
+fi
 [ -f "$BRIEF" ] || {
   echo "error: task $ID has no brief at inaccessible data path $BRIEF" >&2
   exit 1
@@ -5078,6 +5094,64 @@ validate_spawn_worktree() { # <source> <inspect-target>
     echo "error: $source did not yield an isolated worktree (resolved '$WT'; worktree root '${SPAWN_WT_TOP:-none}'; spawning project '$PROJ_ABS'); refusing to launch to avoid tangling the primary checkout. Inspect target $inspect_target" >&2
     exit 1
   fi
+}
+
+# Refuse a freshly acquired slot that belongs to another clone of the
+# repository (bin/fm-treehouse-pool-lib.sh). The pre-lease pool check normally
+# refuses first; this catches a slot the pool gained after that read, before the
+# spawn enters, claims, or launches anything in it. A durable lease this spawn
+# took is returned when the slot holds nothing to lose - no uncommitted or
+# untracked file and no commit missing from every remote - because `treehouse
+# return --force` cleans and resets it; otherwise the lease is kept and named.
+# An interactive `treehouse get` holds only the process lease of the shell in
+# the endpoint this fresh spawn just opened, and nothing has launched there yet,
+# so the endpoint is closed to release the slot. A fresh polytoken spawn's abort
+# cleanup already closes it; every other harness closes it here.
+spawn_refuse_foreign_slot() { # <durable-lease: 0|1>
+  local durable=$1 lease_note='' slot_status unpushed tab_id=
+  fm_treehouse_slot_foreign_owner "$PROJ_ABS" "$WT" || return 0
+  if [ "$durable" = 1 ]; then
+    HERDR_LEASED=0
+    if slot_status=$(git -C "$WT" status --porcelain --untracked-files=all 2>/dev/null) &&
+      [ -z "$slot_status" ] &&
+      unpushed=$(git -C "$WT" rev-list --max-count=1 HEAD --not --remotes 2>/dev/null) &&
+      [ -z "$unpushed" ] &&
+      (cd "$PROJ_ABS" && treehouse return --force "$WT") >/dev/null 2>&1; then
+      lease_note="; the lease this spawn took on $WT was returned"
+    else
+      lease_note="; $WT stays leased to $ID because it holds work or could not be returned; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS"
+    fi
+    # The flat Herdr task tab this spawn opened holds only a shell in the
+    # project, so it is closed through the presentation-lock-guarded kill. A
+    # close that helper refuses is never forced: only a pane Herdr reports gone
+    # counts as closed, and any other is named for the operator. A projected
+    # tab's own abort cleanup closes it, and T3 opens no endpoint before this.
+    if [ "$BACKEND" = herdr ] && [ "$HERDR_PROJECTION_ABORT_CLEANUP" != 1 ]; then
+      if spawn_endpoint_closes_on_abort; then
+        lease_note="$lease_note; $(spawn_endpoint_hint)"
+      else
+        fm_backend_kill herdr "$T" || true
+        if fm_backend_herdr_endpoint_confirmed_gone "$T"; then
+          SPAWN_ENDPOINT_CLOSED=1
+          lease_note="$lease_note; the empty task tab $T this spawn opened was closed"
+        else
+          lease_note="$lease_note; the empty task tab $T this spawn opened could not be closed safely and is still open; close it by hand"
+        fi
+      fi
+    fi
+  elif spawn_endpoint_closes_on_abort; then
+    lease_note="; $(spawn_endpoint_hint)"
+  else
+    [ "$BACKEND" != zellij ] || tab_id=${ZELLIJ_TAB_ID:-}
+    if fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null; then
+      SPAWN_ENDPOINT_CLOSED=1
+      lease_note="; window $T, whose treehouse get held the slot, was closed, returning it to the pool"
+    else
+      lease_note="; window $T could not be closed; close it by hand so its slot returns to the pool"
+    fi
+  fi
+  echo "error: spawn refused: $(fm_treehouse_foreign_pool_message "$PROJ_ABS")$lease_note" >&2
+  exit 1
 }
 
 # A pooled slot whose only deviation is a submodule gitlink is stale, not dirty:
@@ -5835,6 +5909,7 @@ EOF
         exit 1
       }
       [ -n "$WT" ] || { echo "error: treehouse get --lease did not report a worktree for $ID" >&2; exit 1; }
+      spawn_refuse_foreign_slot 1
       validate_spawn_worktree "treehouse get --lease" "$WT (leased to $ID; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS)"
       T3CODE_LEASED=1
       freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" "$PROJ_ABS" "$MODE" || {
@@ -5953,6 +6028,7 @@ spawn_lease_herdr_slot() {
   }
   [ -n "$WT" ] || { echo "error: treehouse get --lease did not report a worktree for $ID" >&2; exit 1; }
   HERDR_LEASED=1
+  spawn_refuse_foreign_slot 1
   validate_spawn_worktree "treehouse get --lease" "$WT (leased to $ID; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS)"
 }
 
@@ -6550,6 +6626,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
       echo "error: treehouse get did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); $(spawn_endpoint_hint)" >&2
       exit 1
     fi
+    spawn_refuse_foreign_slot 0
 
     if spawn_endpoint_closes_on_abort; then
       validate_spawn_worktree "treehouse get" "$WT ($(spawn_endpoint_hint))"
