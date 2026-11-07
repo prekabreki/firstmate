@@ -129,7 +129,7 @@
 #   passed as --pro <harness>:<model> (the matched dispatch rule's `pro`), and
 #   a successful launch or relaunch claims the issue as in-progress. --pro is
 #   recorded as executor_pro= so bin/fm-control.sh can relaunch onto it.
-#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>] [--account <entry>]
+#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>] [--account <entry>] [--autocompact off]
 #   --relaunch launches a replacement agent for an EXISTING task into that
 #   task's own recorded worktree, reusing its recorded endpoint when that
 #   endpoint still exists, instead of creating either from scratch. It is
@@ -546,9 +546,8 @@
 #   on every spawn and relaunch, so a change reaches the next launch without a
 #   restart, and it is inherited into secondmate homes (bin/fm-config-inherit-lib.sh).
 # Claude auto-compact window (config/crew-autocompact):
-#   One token setting the auto-compact window every interactive claude launch
-#   (ship, scout, secondmate, and relaunch) passes as `--autocompact <tokens>`,
-#   so a worker on a 1M-context model compacts long before it fills that window.
+#   One token selecting the auto-compact window every interactive claude launch
+#   (ship, scout, secondmate, and relaunch) passes as `--autocompact <tokens>`.
 #   Absent means off (no flag); a whole number from 100000 to
 #   1000000 (the range the Claude CLI accepts) sets that window; `off` omits the
 #   flag and leaves Claude's own default. An executor's one-shot `claude -p`
@@ -3153,10 +3152,9 @@ launch_template() {
   # selects (header above): --dangerously-skip-permissions by default, or
   # --permission-mode auto when configured.
   # __CLAUDEAUTOCOMPACT__ is the auto-compact window config/crew-autocompact
-  # selects (header above). Claude's own default lets a 1M-context worker grow
-  # toward the full window, re-sending all of it every turn; compaction keeps
-  # task continuity, so interactive launches compact at a bounded window. An
-  # executor is a one-shot and carries no window.
+  # selects (header above): empty by default, so Claude's own auto-compact
+  # policy applies unless an explicit window is configured. An executor is a
+  # one-shot and carries no window.
   # __CLAUDEADDDIRS__ is the task-channel directory grant
   # claude_add_dirs_flag below builds: Claude path-checks Read/Glob/Grep (and
   # an Edit's mandatory prior Read) against cwd plus --add-dir, and since
