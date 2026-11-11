@@ -3181,6 +3181,12 @@ launch_template() {
   # settings ride along exactly as in the interactive form, and the
   # append-system-prompt task channel is omitted because a one-shot has no
   # inbox to trust (docs/verification/executor.md records the flag evidence).
+  # Both forms start with `env -u CLAUDE_CODE_CHILD_SESSION -u
+  # CLAUDE_CODE_ENTRYPOINT`: a pane can inherit those markers from a Herdr
+  # server or tmux environment first started inside a Claude tool shell, and
+  # Claude Code then treats the worker as a child session and turns transcript
+  # saving off. CLAUDE_CONFIG_DIR and other account-pinning variables are
+  # deliberately left alone because worker account selection depends on them.
   claude)
     if [ "$kind" = executor ]; then
       printf '%s' 'env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude -p __CLAUDEPERMFLAG__ --settings __CLAUDESETTINGS__ __MODELFLAG____EFFORTFLAG__--output-format text "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
