@@ -1,0 +1,6 @@
+# baseline b050ca6d bin/: fm_backend_herdr_server_ensure fm-lab-envbase-1376465-32614 from a caller with Claude child markers set
+server_ensure rc=0
+# /proc/1376510/environ of 'herdr server --session fm-lab-envbase-1376465-32614':
+CLAUDE_CODE_CHILD_SESSION: PRESENT (CLAUDE_CODE_CHILD_SESSION=1)
+CLAUDE_CODE_ENTRYPOINT: PRESENT (CLAUDE_CODE_ENTRYPOINT=cli)
+CLAUDECODE: absent

@@ -1,0 +1,7 @@
+## arm=scrubbed prefix='env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT' cwd=/tmp/fm-envscrub-scrubbed.Nuh61J (pane env: CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENTRYPOINT=cli)
+claude output: ok
+transcripts under ~/.claude/projects/-tmp-fm-envscrub-scrubbed-Nuh61J: 1
+## arm=unscrubbed prefix='env' (baseline launch form, no -u) cwd=/tmp/fm-envscrub-unscrubbed.BPduBd (pane env: CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENTRYPOINT=cli)
+claude output: Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+ok
+transcripts under ~/.claude/projects/-tmp-fm-envscrub-unscrubbed-BPduBd: 1

@@ -1,0 +1,9 @@
+# herdr lab fm-lab-envclaude-1664712-18113, server started by baseline b050ca6d server_ensure with CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_ENTRYPOINT=cli; pane w2:p1 runs interactive claude via fixed launch form (env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT)
+ ▐▛███▛█   Claude Code v2.1.322
+▝▜██████▀  Haiku 5.5 · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/4046fed7c36e/01M76DJTYKKCJT3T4HWVN2EMEG
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Model: Haiku 5.5 │ Thinking: medium │ Ctx Used: 0.0% │ Context: [░░░░░░░░░░░░░░░░] 0/1.0M (0%) │ Reset: 45m │ (...
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

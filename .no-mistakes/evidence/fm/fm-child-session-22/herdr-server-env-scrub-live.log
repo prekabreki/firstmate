@@ -1,0 +1,20 @@
+# live: fm_backend_herdr_server_ensure fm-lab-envscrub-1371047-25878 from a caller with Claude child markers set (commit 540dfd18)
+server_ensure rc=0
+{"status":"running","running":true,"version":"0.9.0","protocol":22,"capabilities":{"live_handoff":true,"detached_server_daemon":false,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true},"compatible":true,"endpoint_compatible":true,"socket":"/home/prekabreki/.config/herdr/sessions/fm-lab-envscrub-1371047-25878/herdr.sock","session":"fm-lab-envscrub-1371047-25878","restart_needed":false,"server_binary_stale":false}
+# /proc/1371326/environ of 'herdr server --session fm-lab-envscrub-1371047-25878' (filtered to CLAUDE*)
+CLAUDE_CODE_SESSION_ID=b6643f61-b9a5-4b79-b682-b9401b3721c0
+CLAUDE_PID=1366026
+CLAUDE_EFFORT=medium
+CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000
+CLAUDE_CODE_MESSAGING_SOCKET=/run/user/1000/cc-socks/1366026.sock
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CONFIG_DIR=/tmp/lab-account-pin
+CLAUDE_CODE_PLUGIN_DIRS=/home/prekabreki/git/vibe-chief-of-staff/tools/chief-mod
+CLAUDE_CODE_EXECPATH=/home/prekabreki/.local/share/claude/versions/2.1.322
+CLAUDE_CODE_MESSAGING_TOKEN=8d8d92dda23f78a821c0d63316782e69
+CLAUDE_CODE_CHILD_SESSION: absent
+CLAUDE_CODE_ENTRYPOINT: absent
+CLAUDECODE: absent
+CLAUDE_CONFIG_DIR: PRESENT
+# pane w1:p1 created in that server, shell probe output:
+PANE_ENV CHILD=unset ENTRY=unset CLAUDECODE=unset

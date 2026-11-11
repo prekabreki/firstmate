@@ -1,0 +1,3 @@
+# process environments under herdr server 1664766 (session fm-lab-envclaude-1664712-18113)
+shell 1664816: CHILD=1 ENTRY=cli -> child 1665458 [claude --model haiku --settings {"feedbackDrafts":"off","att] CHILD=1 ENTRY=cli
+shell 1664830: CHILD=1 ENTRY=cli -> child 1665478 [claude --model haiku --settings {"feedbackDrafts":"off","att] CHILD= ENTRY=
