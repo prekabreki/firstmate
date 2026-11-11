@@ -3183,10 +3183,10 @@ launch_template() {
   # inbox to trust (docs/verification/executor.md records the flag evidence).
   claude)
     if [ "$kind" = executor ]; then
-      printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude -p __CLAUDEPERMFLAG__ --settings __CLAUDESETTINGS__ __MODELFLAG____EFFORTFLAG__--output-format text "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+      printf '%s' 'env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude -p __CLAUDEPERMFLAG__ --settings __CLAUDESETTINGS__ __MODELFLAG____EFFORTFLAG__--output-format text "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       return 0
     fi
-    printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ __CLAUDEADDDIRS__--settings __CLAUDESETTINGS__ __CLAUDEAUTOCOMPACT__'
+    printf '%s' 'env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ __CLAUDEADDDIRS__--settings __CLAUDESETTINGS__ __CLAUDEAUTOCOMPACT__'
     if [ "$kind" != secondmate ]; then
       printf '%s' "--append-system-prompt '$(spawn_claude_task_channel_statement)' "
     fi
