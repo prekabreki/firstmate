@@ -103,6 +103,46 @@ launch_line() {  # <launchlog>
   fm_test_launch_unframe "$(cat "$1")"
 }
 
+# Execute both rendered Claude forms in a dirty pane, rather than inspecting
+# template bytes. The account-store pin must survive the targeted scrub.
+test_claude_launch_scrubs_child_markers() {
+  local kind rec id out rc launch seen all_seen='' expected=''
+  for kind in ship executor; do
+    id="claude-env-$kind"
+    rec=$(make_case "$id"); read_case "$rec"
+    if [ "$kind" = executor ]; then
+      executor_brief "$HOME_DIR" "$id" 9
+      out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 9 --yolo off --harness claude); rc=$?
+    else
+      ship_brief "$HOME_DIR" "$id"
+      out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --mode no-mistakes --yolo off --harness claude); rc=$?
+    fi
+    expect_code 0 "$rc" "$kind Claude spawn should succeed: $out"
+    cat > "$FAKEBIN_DIR/claude" <<'SH'
+#!/usr/bin/env bash
+printf '%s|%s|%s\n' "${CLAUDE_CODE_CHILD_SESSION-unset}" "${CLAUDE_CODE_ENTRYPOINT-unset}" "${CLAUDE_CONFIG_DIR-unset}" > "$FM_CLAUDE_ENV_LOG"
+printf '%s\n' "$@" > "$FM_CLAUDE_ARG_LOG"
+SH
+    chmod +x "$FAKEBIN_DIR/claude"
+    launch=$(cat "$LAUNCH_LOG")
+    fm_eval_launch "$launch" "$WT_DIR" "$FAKEBIN_DIR" \
+      CLAUDE_CODE_CHILD_SESSION=child CLAUDE_CODE_ENTRYPOINT=cli CLAUDE_CONFIG_DIR="$HOME_DIR/account" \
+      FM_CLAUDE_ENV_LOG="$HOME_DIR/env" FM_CLAUDE_ARG_LOG="$HOME_DIR/args" >/dev/null \
+      || fail "$kind rendered launch did not execute"
+    seen=$(cat "$HOME_DIR/env")
+    printf '# %s Claude environment: %s\n' "$kind" "$seen"
+    all_seen="$all_seen$kind:$seen;"
+    expected="$expected$kind:unset|unset|$HOME_DIR/account;"
+    if [ "$kind" = executor ]; then
+      grep -qx -- '-p' "$HOME_DIR/args" || fail "executor must retain the print flag"
+    else
+      ! grep -qx -- '-p' "$HOME_DIR/args" || fail "interactive Claude must stay interactive"
+    fi
+  done
+  assert_equals "$expected" "$all_seen" "both rendered Claude launch forms must scrub child markers and retain the account store"
+  pass "both Claude forms scrub inherited child markers while preserving account selection"
+}
+
 test_executor_exit_marker_keeps_agent_status() {
   local setting rec id out rc actual
   for setting in absent enabled; do
@@ -499,6 +539,7 @@ SH
   pass "a project with no .foreman.local runs the plain executor lane with no label traffic"
 }
 
+test_claude_launch_scrubs_child_markers
 test_executor_exit_marker_keeps_agent_status
 test_executor_spawn_records_meta_branch_and_poll
 test_headless_templates_per_adapter

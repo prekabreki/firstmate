@@ -661,7 +661,7 @@ An environment variable alone is not reliable when another Herdr server is runni
 When the selected named server is not running, the adapter launches it without these inherited values:
 
 - Firstmate home and directory overrides.
-- Harness identity markers.
+- Harness identity markers, including `CLAUDE_CODE_CHILD_SESSION` and `CLAUDE_CODE_ENTRYPOINT`, so Claude sessions save transcripts instead of inheriting child-session behavior.
 - The supervision-model override.
 
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
