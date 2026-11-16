@@ -30,8 +30,9 @@
 # (one physical line). A short human summary follows it. load1, cores,
 # mem_free_pct and disk_free_mb are always this host's own probes.
 #
-# lanes counts task metadata records whose kind is not secondmate (ship and
-# scout work, including records not yet reconciled after an endpoint died).
+# lanes counts task metadata records whose kind is not secondmate (ship,
+# scout, and executor work, including records not yet reconciled after an
+# endpoint died).
 # secondmates counts persistent secondmates separately; they hold no lane.
 #
 # target is the cap from config/lane-capacity. Absent means no target, so

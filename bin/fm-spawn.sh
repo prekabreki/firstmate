@@ -3742,9 +3742,11 @@ if [ "$HARNESS" = hermes ]; then
 fi
 
 # config/crew-exclude-tools (header above): refuse before worker provisioning
-# if this launch cannot honor the list. Secondmate agents are not covered.
+# if this launch cannot honor the list. Secondmate agents and executor
+# one-shots are not covered: an executor's headless launch forms are verified
+# without it (docs/verification/executor.md).
 EXCLUDE_TOOLS=
-if [ "$KIND" != secondmate ]; then
+if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   EXCLUDE_TOOLS=$(fm_exclude_tools_check "$HARNESS" "$RAW_LAUNCH" "$CONFIG") || exit 1
 fi
 
@@ -4681,7 +4683,7 @@ fi
 
 # Lane capacity admission (opt-in; bin/fm-capacity.sh owns the verdict and
 # --spawn-gate exits 0 unless config/lane-capacity declares admit-spawns). A
-# fresh ship or scout asks it under one machine-wide lane-admission lock in the
+# fresh ship, scout, or executor asks it under one machine-wide lane-admission lock in the
 # local root home, held until the task record is published, so two spawns on
 # this machine can never take the same open lane. A deferral leaves the task
 # exactly as queued as it was, like a project-capacity deferral.
@@ -8365,7 +8367,7 @@ if [ "$KIND" = secondmate ]; then
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
 else
-  # A ship or scout works for the active home itself.
+  # A ship, scout, or executor works for the active home itself.
   LAUNCH="export FM_HOME=$(shell_quote "$FM_HOME"); $LAUNCH"
 fi
 # Implement the launch-delivery contract in this script's header. The full

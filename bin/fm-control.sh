@@ -1289,8 +1289,8 @@ resolve_relaunch_profile() {
   fi
   # Likewise config/crew-exclude-tools: a malformed file, or a replacement
   # runtime that cannot hide the listed tools, refuses here, before the old
-  # agent stops. Secondmate agents are not covered.
-  if [ "$KIND" != secondmate ]; then
+  # agent stops. Secondmate agents and executor one-shots are not covered.
+  if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
     fm_exclude_tools_check "$TARGET_HARNESS" 0 "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" >/dev/null || return 1
   fi
 }

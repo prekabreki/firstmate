@@ -801,7 +801,10 @@ watch_parked() {  # <id>
 watch_unparked() {  # <id>
   local id=$1 meta pr snap state result
   meta="$STATE/$id.meta"
-  [ "$(fm_meta_get "$meta" kind)" != secondmate ] || return 0
+  # Only a ship lane parks (park_preflight); a scout, executor, or secondmate
+  # record is not swept, so an executor's closed or open PR stays the executor
+  # lane's own outcome.
+  case "$(fm_meta_get "$meta" kind)" in ''|ship) ;; *) return 0 ;; esac
   pr=$(fm_meta_get "$meta" pr)
   [ -n "$pr" ] && [ -f "$STATE/$id.check.sh" ] || return 0
   [ ! -e "$(record_path "$id")" ] || return 0

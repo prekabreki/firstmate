@@ -931,6 +931,19 @@ test_closed_pr_is_reported_once() {
   pass "closed-without-merge reporting for unparked lanes requires a feature flag and does not require an idle worker"
 }
 
+test_tick_sweeps_only_ship_lanes() {
+  local w out
+  w=$(make_world executor-closed "$GL_URL"); gl_fixture "$w" state=closed
+  sed -i.bak 's/^kind=ship$/kind=executor/' "$w/state/lane.meta" && rm -f "$w/state/lane.meta.bak"
+  [ "$(grep -c '^kind=executor$' "$w/state/lane.meta")" = 1 ] || fail "executor-closed: fixture kind not rewritten"
+  : > "$w/config/park-on-review"
+  out=$(run_park "$w" tick 2>&1)
+  [ -z "$out" ] || fail "executor-closed: an executor PR close was reported as a lane decision: $out"
+  [ ! -e "$w/glab.log" ] || fail "executor-closed: the tick read the forge for a non-ship lane"
+  [ ! -e "$w/control.log" ] && [ ! -e "$w/state/lane.review-park" ] || fail "executor-closed: lifecycle action occurred"
+  pass "the unparked-lane sweep reads only ship lanes, so an executor's PR is left to its own lane"
+}
+
 test_tick_parks_clean_idle_lanes_only_when_opted_in() {
   local w out
   w=$(make_world auto-park "$GL_URL"); gl_fixture "$w"
@@ -1225,6 +1238,7 @@ fm_test_run \
   test_quiet_parked_lane_and_approval_do_not_relaunch \
   test_failed_relaunch_keeps_record_and_stops_retrying \
   test_closed_pr_is_reported_once \
+  test_tick_sweeps_only_ship_lanes \
   test_tick_parks_clean_idle_lanes_only_when_opted_in \
   test_land_requires_opt_in_but_always_cleans_parked \
   test_land_queue_fails_when_cleanup_request_cannot_be_written \
