@@ -69,6 +69,7 @@ The spawn refuses an issue without `ready-for-agent`: that label is the captain'
 It also refuses a repository the captain does not own, because every label write speaks for the captain.
 A successful spawn or relaunch claims the issue as `in-progress`.
 An issue carrying `exec:pro` launches only on the `--pro` profile, and `bin/fm-control.sh <id> relaunch` with no harness or model moves it there by itself.
+Under an active `config/crew-dispatch.json` the recorded dispatch resolution holds only the rule's base profile, so a fresh dispatch of an `exec:pro` issue launches on the rule's pro profile and passes `--dispatch-override` with a reason naming the `exec:pro` label.
 
 ## Canary rule
 
