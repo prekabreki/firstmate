@@ -192,7 +192,7 @@ test_executor_spawn_records_meta_branch_and_poll() {
   cmp -s "$HOME_DIR/data/$id/brief.md" "$HOME_DIR/data/$id/launch-brief.md" \
     || fail "launch-brief.md must be the executor brief verbatim (no worker role or intent overlay)"
   launch=$(launch_line "$LAUNCH_LOG")
-  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' '$FAKEBIN_DIR/opencode' run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
+  expected="export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")export FM_HOME='$HOME_DIR'; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{\"permission\":{\"*\":\"allow\"}}' '$FAKEBIN_DIR/opencode' run \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'"
   [ "$launch" = "$expected" ] || fail "opencode executor launch mismatch"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   pass "executor spawn: meta, pre-created branch at its base, published poll, excluded PR body, verbatim launch brief"
 }
@@ -233,6 +233,33 @@ test_headless_templates_per_adapter() {
   assert_not_contains "$launch" 'high' "opencode omits the unmapped effort axis from the launch"
   assert_grep 'effort=high' "$HOME_DIR/state/$id.meta" "the omitted effort is still recorded"
   pass "headless templates: claude -p, codex exec, opencode run, each with the exit marker appended"
+}
+
+# config/crew-exclude-tools covers ship and scout workers only: an executor's
+# verified headless forms carry no exclusion flag, so a list neither refuses a
+# runtime that cannot hide tools nor changes a Claude executor's launch.
+test_executor_ignores_worker_tool_exclusions() {
+  local rec id out rc launch
+  id=exec-excl-j1
+  rec=$(make_case excl-codex); read_case "$rec"
+  mkdir -p "$HOME_DIR/config"
+  printf 'Workflow\nmcp__example\n' > "$HOME_DIR/config/crew-exclude-tools"
+  executor_brief "$HOME_DIR" "$id" 9
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 9 --yolo off --harness codex); rc=$?
+  expect_code 0 "$rc" "a codex executor must not be refused for a worker tool exclusion list: $out"
+  assert_not_contains "$out" "crew-exclude-tools" "the exclusion list is not consulted for an executor"
+
+  id=exec-excl-j2
+  rec=$(make_case excl-claude); read_case "$rec"
+  mkdir -p "$HOME_DIR/config"
+  printf 'Workflow\n' > "$HOME_DIR/config/crew-exclude-tools"
+  executor_brief "$HOME_DIR" "$id" 9
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 9 --yolo off --harness claude); rc=$?
+  expect_code 0 "$rc" "a claude executor with an exclusion list should launch: $out"
+  launch=$(launch_line "$LAUNCH_LOG")
+  assert_contains "$launch" "claude -p " "the claude executor keeps its headless form"
+  assert_not_contains "$launch" "--disallowedTools" "the headless form carries no exclusion flag"
+  pass "worker tool exclusions leave executor launches unrefused and unchanged"
 }
 
 test_executor_refusals() {
@@ -350,7 +377,7 @@ test_raw_command_receives_brief_as_final_argument() {
   expect_code 0 "$rc" "a raw executor command should launch: $out"
   assert_contains "$out" "spawned $id harness=mytool kind=executor" "the raw command's basename is recorded"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")export FM_HOME='$HOME_DIR'; mytool run --fast \"\$($OPINPUT < '$HOME_DIR/data/$id/launch-brief.md')\"; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "the raw command must receive the encoded brief as its final argument, got: $launch"
   id=exec-raw-e2
   rec=$(make_case raw-placed); read_case "$rec"
@@ -358,7 +385,7 @@ test_raw_command_receives_brief_as_final_argument() {
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --executor --issue 11 --yolo off --harness 'mytool --brief __BRIEF__ run'); rc=$?
   expect_code 0 "$rc" "a raw command naming __BRIEF__ should launch: $out"
   launch=$(launch_line "$LAUNCH_LOG")
-  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
+  [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='$HOME_DIR/state/$id.inbox'; $(fm_test_launch_git_prefix "$launch")export FM_HOME='$HOME_DIR'; mytool --brief '$HOME_DIR/data/$id/launch-brief.md' run; (exit \"\$FM_EXECUTOR_COMMAND_EXIT\"); printf '%s\\n' \"\$?\" > '$HOME_DIR/state/$id.executor-exit'" ] \
     || fail "a raw command that places __BRIEF__ itself must keep that placement, got: $launch"
   pass "a raw executor command receives the encoded brief last unless it places __BRIEF__ itself"
 }
@@ -543,6 +570,7 @@ test_claude_launch_scrubs_child_markers
 test_executor_exit_marker_keeps_agent_status
 test_executor_spawn_records_meta_branch_and_poll
 test_headless_templates_per_adapter
+test_executor_ignores_worker_tool_exclusions
 test_executor_refusals
 test_executor_refuses_unverified_postures
 test_brief_and_spawn_kind_agreement
