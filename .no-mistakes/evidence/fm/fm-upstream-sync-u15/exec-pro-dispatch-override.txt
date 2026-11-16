@@ -1,0 +1,41 @@
+== 1. base profile flags (what the dispatch selection names) on an exec:pro issue
+$ fm-spawn.sh exec-pro-1 <proj> --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-flash --pro opencode:deepseek/deepseek-v4-pro
+error: executor spawn of exec-pro-1 refused: issue #7 carries 'exec:pro', so it launches on its pro profile opencode:deepseek/deepseek-v4-pro, not opencode:deepseek/deepseek-flash; pass --harness opencode --model deepseek/deepseek-v4-pro
+exit=1
+
+== 2. pro profile flags WITHOUT --dispatch-override
+$ fm-spawn.sh exec-pro-1 <proj> --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-v4-pro --pro opencode:deepseek/deepseek-v4-pro
+error: launch flags do not match the clear dispatch selection --harness opencode --model deepseek/deepseek-flash recorded in /tmp/exec-pro-override.VDTpV8/c/home/data/exec-pro-1/dispatch-resolution.json; pass those flags with no raw launch command, or record this task's override with --dispatch-override <reason>
+exit=1
+
+== 3. documented procedure: pro profile + --dispatch-override naming exec:pro
+$ fm-spawn.sh exec-pro-1 <proj> --executor --issue 7 --yolo off --harness opencode --model deepseek/deepseek-v4-pro --pro opencode:deepseek/deepseek-v4-pro --dispatch-override 'issue carries exec:pro'
+/tmp/exec-pro-override.VDTpV8/c/fake/fakebin/timeout: line 3: exec: 1: not found
+/tmp/exec-pro-override.VDTpV8/c/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned exec-pro-1 harness=opencode kind=executor mode=direct-PR yolo=off issue=7 window=firstmate:fm-exec-pro-1 worktree=/tmp/exec-pro-override.VDTpV8/c/wt
+exit=0
+
+-- task meta:
+harness=opencode
+executor_pro=opencode:deepseek/deepseek-v4-pro
+model=deepseek/deepseek-v4-pro
+dispatch_override=issue carries exec:pro
+-- launch command:
+export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.inbox'; '/home/prekabreki/.no-mistakes/worktrees/4046fed7c36e/01M7GV9NRD6AM7QM478M1JN5TS/bin/fm-git-strip-ai-trailers.sh' env-file '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks' '/tmp/fm-exec-pro-1+afcb4015c728f1e35cddd124c238a3e50b27852d4d4b2b6eb9aeece9e8345235/git-config.s1794788881.3603782.21093.sh' && . '/tmp/fm-exec-pro-1+afcb4015c728f1e35cddd124c238a3e50b27852d4d4b2b6eb9aeece9e8345235/git-config.s1794788881.3603782.21093.sh' || return 1 2>/dev/null || exit 1; e
+-- gh label writes:
+issue edit 7 --add-label in-progress --remove-label ready-for-agent,needs-replan
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/sendemail-validate': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-auto-gc': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/post-rewrite': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-push': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/post-merge': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/post-checkout': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-rebase': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/post-commit': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/prepare-commit-msg': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-merge-commit': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-commit': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/post-applypatch': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/pre-applypatch': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/applypatch-msg': Permission denied
+rm: cannot remove '/tmp/exec-pro-override.VDTpV8/c/home/state/exec-pro-1.git-hooks/commit-msg': Permission denied

@@ -1,0 +1,344 @@
+FM_TEST_BEGIN 2026-11-16T00:18:20Z tests/fm-hermes-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-11-16T00:18:20Z tests/fm-crew-state-executor.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-11-16T00:18:20Z tests/fm-brief-executor.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - a running executor reads working from the executor source and never attributes a run
+ok - an exited executor with a pull request reads done, naming the URL and its draft, ready, or merged state
+ok - an exited executor without an open pull request reads failed with the exact failure shape
+ok - unreadable liveness, a failed pull-request read, and no-forge mode all read unknown, never a guess
+FM_TEST_END 2026-11-16T00:18:21Z tests/fm-crew-state-executor.test.sh exit=0 duration_ms=938 gate_skip=false
+ok - executor scaffold: short, numbered, issue-driven, and ends with the delivery contract
+ok - executor brief carries none of the interactive worker contracts
+ok - --issue and --verify are required, shape-checked, and refused when placeholder-literal
+ok - --executor is exclusive with --mode, --scout, --secondmate, and --herdr-lab; --issue/--verify need it
+ok - fm_brief_executor_issue reads exactly the executor contract line
+ok - without --verify the onboarded project's gate is read through foreman, never by sourcing
+ok - two path legs compose in subshells and the composed gate runs correctly end to end
+ok - an issue touching a declared-but-unbacked leg refuses the scaffold with foreman's WARN
+ok - a missing foreman fails loudly instead of scaffolding an empty gate
+FM_TEST_END 2026-11-16T00:18:21Z tests/fm-brief-executor.test.sh exit=0 duration_ms=1522 gate_skip=false
+ok - worker-only capability and anchored process identity
+ok - profile validation and read-only idle-gateway coexistence check
+ok - startup consent only confirms a complete native offer with No thanks already selected
+error: stale busy-state gen for worker (event rejected)
+ok - native hook overlay preserves hooks and enforces session/generation binding
+ok - profile-prefixed composer requires native ready status and preserves drafts
+ok - scout spawn carries native profile, interactive brief, hook overlay and metadata
+ok - stalled Hermes launch stops its pane before the task record is removed
+ok - stalled Hermes launch whose pane cannot be closed keeps its task record
+FM_TEST_END 2026-11-16T00:18:29Z tests/fm-hermes-harness.test.sh exit=0 duration_ms=9198 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:18:29Z tests/fm-executor-poll.test.sh family=pr-forge expected_gate_skip=none
+FM_TEST_BEGIN 2026-11-16T00:18:29Z tests/fm-executor-bounce.test.sh family=pr-forge expected_gate_skip=none
+ok - a first bounce closes the PR with its comment, keeps the branch, and replans the issue
+ok - a bounce of an already-bounced issue escalates to needs-human
+ok - a project without .foreman.local closes the PR and writes no label
+ok - every refusal fires before the pull request is closed
+FM_TEST_END 2026-11-16T00:18:29Z tests/fm-executor-bounce.test.sh exit=0 duration_ms=331 gate_skip=false
+ok - a running executor inside the runtime bound is silent
+ok - a running executor past FM_EXECUTOR_MAX_RUNTIME reports stale, once the bound is exceeded
+ok - an exited executor with an open pull request on fm/<id> reports ready
+ok - draft, open-over-merged, and closed-never-counts are honored
+ok - an exited executor with commits but no open pull request reports committed but no PR
+ok - an exited executor at its base with no pull request reports the pre-commit failure
+ok - an operator-stopped executor reads stopped, not failed, unless it already opened a PR
+ok - a gh failure is silent and non-zero rather than a failed verdict
+ok - an empty pull-request list is exactly nothing
+ok - an authoritatively missing endpoint reads as exited even without the exit marker
+ok - one wake per (incarnation, outcome): the notified marker suppresses only exact repeats
+ok - only a byte-identical poll over a well-formed executor record is dispatched
+ok - the poll is inert outside the watcher's validated argument shape
+FM_TEST_END 2026-11-16T00:18:30Z tests/fm-executor-poll.test.sh exit=0 duration_ms=1261 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:18:30Z tests/fm-stow-cascade.test.sh family=secondmate expected_gate_skip=none
+ok - each home is accounted against its own allowance instead of a fleet total
+ok - the cascade emits one stanza per registered home and refuses a double-counted registry
+ok - transport follows placement and live-agent state, and a remote home without an agent defers
+ok - each stanza carries the facts a per-home receipt needs, before and after curation
+ok - one slow or unreachable home is bounded and every other home still reports
+ok - the cascade stays silent with no secondmates and never runs from a secondmate home
+FM_TEST_END 2026-11-16T00:18:33Z tests/fm-stow-cascade.test.sh exit=0 duration_ms=2890 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:18:33Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - invalid preferred_provider: null
+ok - invalid preferred_provider: false
+ok - invalid preferred_provider: 42
+ok - invalid preferred_provider: []
+ok - invalid preferred_provider: {}
+ok - invalid preferred_provider: ""
+ok - invalid preferred_provider: "Codex"
+ok - invalid preferred_provider: "codex\\n"
+ok - invalid preferred_provider: " codex"
+ok - preferred provider: astra-82-claude-26
+ok - preferred provider: work-account
+ok - preferred provider: exhausted
+ok - preferred provider: unknown
+ok - preferred provider: unknown-one-known-one
+ok - preferred provider: claude-only
+ok - preferred provider: config-override
+ok - preferred provider: prose-why
+ok - preferred provider: absent
+ok - preferred provider: approval
+ok - preferred provider: tie
+ok - preferred provider: floor
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - TypeSafe base supports environment and .env overrides and rejects unsafe URLs before sending
+ok - OpenRouter clear uses the same output contract and keeps its key out of argv and child environments
+ok - OpenRouter ambiguous, malformed, HTTP, and missing-model paths are handled
+ok - mapping: a declared macos-keychain service and optional account become the lookup, and the key rides the fd header
+ok - precedence: environment, then .env, then the declared source, which is read only when needed
+ok - provider isolation: each provider reads only its own declared service, and a declaration never selects a provider
+ok - effective-home isolation: only the effective config directory's declaration is consulted
+ok - failure distinctions: off, a configuration error, and an unavailable source each read differently and send nothing
+ok - secret containment: the declared key is on no argv, in no output, environment, or file, and only on the fd header
+ok - capability probe: supported or unsupported, with no declaration read and no credential tool run
+ok - with no provider set, other providers' settings leave the original off line unchanged
+ok - systemone posts the unchanged request to its base URL with an optional fd-3 key
+ok - systemone configuration errors, never-send base URL, partial response, and transport failure are handled
+ok - openai maps the Choice request to the Decisions API and its answer back, key on fd 3 only
+ok - the never-send check runs on the final openai request body
+ok - openai malformed, partial, refused, ambiguous, HTTP, and transport paths return to normal intake
+ok - never-send list withholds the request on a match or a bad list, and never prints the value
+ok - rules snapshots and shell quoting preserve the profile protocol
+ok - quota_scope binds an agy candidate to its declared tier row
+ok - no-rule fallback, Agy, Gemini, and documented configurations resolve
+ok - ambiguous: confidence below the fixed floor hands the decision back
+ok - task record: every exit-0 outcome records its decision for data/<id>/brief.md, and exit 2 records none
+ok - task record: the configured data root, including FM_DATA_OVERRIDE, decides where the record goes
+ok - per-rule confidence floors fall to the most probable runner-up that clears its own floor
+ok - only the brief's task sections and scout tag reach the model, with a whole-brief fallback
+ok - escalate: a rule declared approval: captain never yields a profile
+ok - rule floor: known shortfall falls through while unavailable evidence escalates
+ok - declared provider and profile floor evidence are applied in code
+ok - nonnumeric spendPriority evidence is never ranked
+ok - partial and missing quota evidence remain eligible but unranked
+ok - provider-wide and exact quota rows combine into one limiting candidate
+ok - default: no rule matched resolves among the default profiles
+ok - tie: equal spendPriority never breaks by array order
+ok - no rankable candidate: the tool escalates instead of guessing
+ok - native Codex binds to codex-home before default, independently of Pi accounts and row order
+ok - Pi native adapters bind to codex-home with existing fallbacks and schema 5 compatibility
+ok - schema 6: each candidate binds to its account row; schema 5 is unchanged
+ok - quota evidence comes from one quota-axi --json read, and its failure is an error outcome
+ok - API, transport, and response failures are error outcomes with exit 0
+ok - configuration errors exit 2 before any network call
+ok - shared-quota opt-out: no quota snapshot, deterministic declared-order pick, opt-out stated on every candidate
+ok - shared-quota bypasses an unmet rule-level floor: the rule's own profile wins with no quota call
+ok - shared-quota bypasses an unmet profile-level floor: the first declared profile wins with no quota call
+ok - shared-quota keeps preferred_provider narrowing: the preferred family wins in declared order with no quota call
+ok - shared_quota false keeps the unchanged quota-ranked behavior
+# all fm-dispatch-resolve tests passed
+FM_TEST_END 2026-11-16T00:18:56Z tests/fm-dispatch-resolve.test.sh exit=0 duration_ms=22632 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:18:56Z tests/fm-spawn-executor.test.sh family=backend-dispatch expected_gate_skip=none
+# ship Claude environment: unset|unset|/tmp/fm-spawn-executor.zPo7wn/claude-env-ship/home/account
+# executor Claude environment: unset|unset|/tmp/fm-spawn-executor.zPo7wn/claude-env-executor/home/account
+ok - both Claude forms scrub inherited child markers while preserving account selection
+ok - executor exit markers preserve the agent's failure across OSC cleanup and the cleared launch environment
+ok - executor spawn: meta, pre-created branch at its base, published poll, excluded PR body, verbatim launch brief
+ok - headless templates: claude -p, codex exec, opencode run, each with the exit marker appended
+ok - worker tool exclusions leave executor launches unrefused and unchanged
+ok - executor refusals: mode, kind conflicts, issue, yolo, non-headless adapters, batch, relaunch --issue
+ok - executor refusals: unverified Codex posture, OpenCode 2, unverified backend, non-default forge, upstream consent
+ok - brief and spawn agree on kind and issue in both directions
+ok - a raw executor command receives the encoded brief last unless it places __BRIEF__ itself
+ok - an executor below a stricter standing posture refuses without --accept-direct-pr and records the consent with it
+ok - a stale fm/<id> is reset onto the freshened base on retry; a held branch refuses with git's reason
+ok - foreman intake: a ready-for-agent issue launches and is claimed in-progress
+ok - foreman intake refuses an unpromoted issue and a repository the captain does not own
+ok - an exec:pro issue launches only on the --pro profile, which the task records
+ok - a project with no .foreman.local runs the plain executor lane with no label traffic
+FM_TEST_END 2026-11-16T00:19:52Z tests/fm-spawn-executor.test.sh exit=0 duration_ms=56433 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:19:52Z tests/fm-spawn-pool-owner.test.sh family=unclassified expected_gate_skip=none
+ok - a pool owned by another clone is refused before any pane, record, or lease
+ok - a slot found foreign after leasing is refused and its clean lease returned
+ok - a foreign slot holding work keeps its lease and names the release
+ok - a slot found foreign after a Herdr lease closes the empty task tab and returns the lease
+ok - a refused guarded close of the Herdr race tab is not forced and the tab is reported
+ok - a slot found foreign inside an interactive treehouse get closes the window holding it
+ok - symlinked paths to the project's own clone and pool spawn normally
+ok - project-add intake warns about a pool owned by another clone
+ok - project-add intake accepts its own pool and reports an unreadable one
+# all fm-spawn-pool-owner tests passed
+FM_TEST_END 2026-11-16T00:19:57Z tests/fm-spawn-pool-owner.test.sh exit=0 duration_ms=4602 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:19:57Z tests/fm-spawn-dispatch-profile.test.sh family=backend-dispatch expected_gate_skip=none
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+ok - secondmate launch inherits the allowlist for subsequent worker launches
+ok - local inheritance preserves the allowlist on source errors and mirrors proven absence
+ok - remote inheritance preserves the allowlist on source errors and mirrors proven absence
+ok - Codex absent, bypass, and restricted modes preserve flags for ships, scouts, and secondmates
+ok - invalid Codex permission files refuse spawns and relaunches before mutation
+ok - Codex restricted mode leaves other harness launch flags unchanged
+WORKER-RAN
+WORKER-RAN
+WORKER-RAN
+WORKER-RAN
+skip: fish not found (fish pane launch); only a static syntax check ran
+ok - launch appends the hooks config while preserving inherited Git credentials in sh, bash and zsh
+ok - fm-spawn: actual ship/scout launch commands deliver the worker role contract
+ok - no --model/--effort records defaults and types the claude launch instructions
+ok - a claude launch publishes the brief as an operational-inbox record and passes only the doorbell
+ok - a secondmate claude launch publishes its brief record into the secondmate's own home
+ok - a claude spawn whose launch-brief record cannot publish stops with a clear error and sends no launch
+ok - non-cursor launches clear inherited Cursor identity markers
+ok - relative home overrides ignore CDPATH and become absolute before spawn launch construction
+ok - FM_HOME defaults resolve relative paths and preserve absolute spellings
+ok - absolute override spellings are preserved in spawn launch paths
+ok - unresolvable relative spawn overrides fail with named diagnostics
+ok - active crew-dispatch profile requires an explicit harness for ship spawns
+ok - active crew-dispatch profile requires an explicit harness for scout spawns
+ok - a non-clear dispatch record accepts the explicit flags of the manual intake
+ok - a recorded dispatch selection refuses conflicting explicit launch flags
+ok - a recorded dispatch selection allows the matching launch flags
+ok - a task override with its reason permits a different launch and is recorded
+ok - an effort the clear selection leaves unset is not bound
+ok - a clear dispatch selection refuses a raw launch command unless a task override is recorded
+ok - active dispatch refuses a spawn whose task has no recorded resolution
+ok - batch dispatch checks each task against its own recorded selection
+ok - active crew-dispatch profile allows the legacy positional harness form
+ok - active crew-dispatch profile allows the raw launch-command escape hatch
+ok - a raw launch ending in a separator or a comment still runs the worker, its disarm, and config warnings
+ok - a raw launch keeps a reporter only for an established agent below its native floor
+ok - a chained raw launch commits through the AI-trailer strip in every step
+ok - claude receives --model and --effort profile flags
+ok - codex receives --model and model_reasoning_effort profile flags
+ok - codex Luna receives --model and model_reasoning_effort max profile flags
+ok - codex omits max for models without the catalog capability
+ok - a codex crewmate requests no hook layer and keeps its turn-end signal
+ok - a codex secondmate keeps its project hooks and uses automatic approval review
+ok - Codex defaults remain bypass; persistent fallback is direct and invalid values refuse
+ok - grok receives --model and --reasoning-effort profile flags
+ok - grok omits unsupported max reasoning effort
+ok - grok omits unsupported xhigh reasoning effort
+ok - cursor receives its model-qualified reasoning class and exact task workspace
+ok - cursor refuses model ids absent from its resolved binary's live catalog
+ok - cursor preserves the requested model when its live catalog is unreachable
+ok - opencode receives the model and effort through its config
+ok - opencode without an effort keeps the model pin and omits variant
+ok - opencode emits the variant for an effort the openai family exposes
+ok - opencode omits the variant for an effort outside the model family's list
+ok - opencode 1.x keeps the --model flag and the variant-only config
+ok - opencode 1.x without an effort keeps its permission-only launch config
+ok - opencode probe and launch share the same resolved executable path
+ok - opencode with an unparseable version falls back to the 1.x launch path
+ok - opencode 2 delivery gate accepts an auto-submitted brief without pressing Enter
+ok - opencode 2 delivery gate sends exactly one Enter for a brief left in the composer
+ok - opencode 2 delivery gate keeps polling an unknown composer and sends one Enter once it reads pending
+ok - opencode 2 delivery gate sends its one Enter at the deadline when the composer only reads unknown
+ok - opencode 2 delivery gate fails the spawn when the brief turn never starts
+ok - opencode 1.x launches keep their pre-gate delivery
+ok - opencode provisions a busy-state plugin for every detected major, including the 1.x fallback
+ok - native effort validator checks harness and model as separate axes
+ok - Ultra is explicit for native Pi and Pi-signed, including direct-PR, and refuses unsupported profiles before provisioning
+ok - batch dispatch preserves native Ultra in metadata and launch flags
+ok - Pi scout spawn enters the recorded worktree before launch
+ok - pi receives --model and --thinking max profile flags
+ok - Pi launch probing omits --tui-mode on older Pi and preserves it on supporting Pi
+ok - pi-signed shares Pi launch semantics while preserving its configured and recorded identity
+ok - pi-signed refuses safely and actionably when the selected executable is unavailable
+ok - pi-signed is a distinct persistent secondmate runtime with shared Pi supervision semantics
+ok - seeded Pi/pi-signed secondmate launches carry session --approve when advertised
+ok - ordinary Pi worker launches omit --approve
+ok - Pi approve probing omits --approve when help does not advertise it
+ok - Pi and pi-signed ship and scout launches carry the configured tool exclusions
+ok - Claude ship and scout launches carry the configured tool exclusions ahead of the prompt
+ok - a Claude exclusion list adds only its own flag to the launch
+ok - Pi worker registries report unmatched and unverified exclusions without reporting exact matches
+ok - an absent or empty exclusion list leaves every runtime unaffected
+ok - a runtime that cannot hide tools, or a raw launch, refuses a non-empty exclusion list
+ok - a malformed exclusion entry refuses the spawn before any launch or record
+ok - Pi and pi-signed ship and scout launches refuse when the exclusion file disappears after its checks
+ok - exclusions stay in the home that configured them and skip secondmate agents
+ok - batch dispatch forwards shared --harness, --model, and --effort to every pair
+ok - claude forwards firstmate's CLAUDE_CONFIG_DIR so the crewmate uses the same credential store
+ok - the primary-owned Lavish server address reaches every worker launch
+cat: /tmp/fm-spawn-dispatch-profile.1UX6Qc/profile-lavish-ambient/pane.log: No such file or directory
+ok - absent Lavish configuration preserves the destination environment
+ok - claude omits the config-dir prefix when firstmate runs with the single-store default
+ok - absent config/claude-permission-mode defaults to --dangerously-skip-permissions
+ok - config/claude-permission-mode=auto opts into the model-reviewed launch
+ok - explicit config/claude-permission-mode=bypass uses --dangerously-skip-permissions
+ok - config/claude-permission-mode=auto reaches scout launches too
+ok - claude worker launches cover the task-channel directories in bypass and auto modes
+ok - an unrecognized config/claude-permission-mode token refuses before any endpoint or metadata
+ok - config/claude-permission-mode changes claude launches only
+ok - config/crew-autocompact sets the --autocompact window of a claude ship launch
+ok - config/crew-autocompact=off omits --autocompact
+ok - config/crew-autocompact reaches scout launches too
+ok - an out-of-range or malformed config/crew-autocompact refuses before any endpoint or metadata
+ok - config/crew-autocompact changes claude launches only
+ok - non-claude harnesses do not receive the claude CLAUDE_CONFIG_DIR prefix
+ok - a claude task launch establishes only Firstmate's task control channels through the system prompt
+ok - a persistent claude secondmate keeps its supervisor contract without a task-worker authority overlay
+ok - fm-spawn: a Claude launch longer than 1024 bytes is delivered intact through the staging path
+ok - a claude crewmate launch carries the attribution-off policy in its own settings
+ok - keep-ai-trailers omits Claude attribution settings and the pane strip hooks
+ok - keep-ai-trailers is inherited so a secondmate's crew launch keeps AI trailers
+ok - a claude secondmate launch carries the attribution-off policy too
+ok - active crew-dispatch profile does not block secondmate launches
+# all fm-spawn-dispatch-profile tests passed
+FM_TEST_END 2026-11-16T00:27:05Z tests/fm-spawn-dispatch-profile.test.sh exit=0 duration_ms=428191 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:27:05Z tests/fm-away-notify.test.sh family=unclassified expected_gate_skip=none
+1..7
+ok - each captain outcome recorded while away alerts once, with the text as $1 and on stdin
+ok - presenting an unacknowledged captain outcome again never re-sends its alert
+ok - attended sessions, quiet mode, and routine outcomes never alert
+ok - an absent config, or one holding off, sends nothing
+ok - outcomes inside the rate-limit window are counted into the next alert, never dropped
+ok - a new away window starts with no rate-limit window and no carried count
+ok - a failing, hung, or missing command logs a warning and never breaks or stalls the caller
+FM_TEST_COMPLETE
+FM_TEST_END 2026-11-16T00:27:11Z tests/fm-away-notify.test.sh exit=0 duration_ms=5982 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:27:11Z tests/fm-stow-guard.test.sh family=unclassified expected_gate_skip=none
+1..11
+ok - absent config/stow-guard leaves the stop unchanged and writes no state
+ok - a context crossing blocks once, a continuation below two-thirds re-arms, and the next crossing blocks
+ok - a continuation stop at the token line blocks once and the next continuation above it does not
+ok - the age ask starts the clock, blocks once a day, and waits an hour before asking again
+ok - a Skill /stow sets the age clock and a later tail does not rewind it
+ok - a linked crew worktree stays silent even when the opt-in file and a high reading are present
+ok - a marked secondmate home stays silent even when the opt-in file and a high reading are present
+ok - missing python3 skips the age ask and still asks on a context crossing
+ok - bad json, an empty payload, a cursor payload, grok, and a missing jq all stay silent
+ok - a token line past integer range keeps the 300000 default and still asks
+ok - tracked Claude Stop settings run fm-stow-guard.sh once, synchronously, and inert under grok
+FM_TEST_COMPLETE
+FM_TEST_END 2026-11-16T00:27:18Z tests/fm-stow-guard.test.sh exit=0 duration_ms=6723 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:27:18Z tests/fm-claude-autocompact-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - claude 2.1.325 (Claude Code) accepts --autocompact 400000, 200000 and the range ends 100000 and 1000000
+ok - claude 2.1.325 (Claude Code) refuses --autocompact 99999 and 1000001, so the flag is recognized with fm-spawn's range
+# claude auto-compact live guard checked: claude
+FM_TEST_END 2026-11-16T00:27:18Z tests/fm-claude-autocompact-live-e2e.test.sh exit=0 duration_ms=549 gate_skip=false
+FM_TEST_BEGIN 2026-11-16T00:27:18Z tests/fm-executor-headless-flags-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+ok - claude 2.1.325 (Claude Code) advertises every flag of the executor template (claude -p)
+ok - codex codex-cli 0.163.0 advertises every flag of the executor template (codex exec)
+ok - opencode 1.18.35 advertises every flag of the executor template (opencode run)
+FM_TEST_END 2026-11-16T00:27:19Z tests/fm-executor-headless-flags-live-e2e.test.sh exit=0 duration_ms=1020 gate_skip=false
+FM_TEST_SUMMARY total=14 failed=0 skipped_gate=0 duration_ms=540039
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=2 duration_ms=484624 failed=0
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=2 duration_ms=1569 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=1592 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=3 duration_ms=11658 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=2890 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=22632 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=3 duration_ms=17307 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-spawn-dispatch-profile.test.sh duration_ms=428191
+FM_TEST_SLOWEST rank=2 script=tests/fm-spawn-executor.test.sh duration_ms=56433
+FM_TEST_SLOWEST rank=3 script=tests/fm-dispatch-resolve.test.sh duration_ms=22632
+FM_TEST_SLOWEST rank=4 script=tests/fm-hermes-harness.test.sh duration_ms=9198
+FM_TEST_SLOWEST rank=5 script=tests/fm-stow-guard.test.sh duration_ms=6723
+FM_TEST_SLOWEST rank=6 script=tests/fm-away-notify.test.sh duration_ms=5982
+FM_TEST_SLOWEST rank=7 script=tests/fm-spawn-pool-owner.test.sh duration_ms=4602
+FM_TEST_SLOWEST rank=8 script=tests/fm-stow-cascade.test.sh duration_ms=2890
+FM_TEST_SLOWEST rank=9 script=tests/fm-brief-executor.test.sh duration_ms=1522
+FM_TEST_SLOWEST rank=10 script=tests/fm-executor-poll.test.sh duration_ms=1261
+FM_TEST_SLOWEST rank=11 script=tests/fm-executor-headless-flags-live-e2e.test.sh duration_ms=1020
+FM_TEST_SLOWEST rank=12 script=tests/fm-crew-state-executor.test.sh duration_ms=938
+FM_TEST_SLOWEST rank=13 script=tests/fm-claude-autocompact-live-e2e.test.sh duration_ms=549
+FM_TEST_SLOWEST rank=14 script=tests/fm-executor-bounce.test.sh duration_ms=331
+fm-test-run: wrote timing artifact: /home/prekabreki/.no-mistakes/evidence/01M7GV9NRD6AM7QM478M1JN5TS/targeted-run.json

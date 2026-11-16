@@ -1,0 +1,15 @@
+ ▐▛███▛█   Claude Code v2.1.325
+▝▜██████▀  Opus 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/4046fed7c36e/01M7GV9NRD6AM7QM478M1JN5TS
+❯ Run your session-start bootstrap (bin/fm-bootstrap.sh) per AGENTS.md, then report in two lines what it said about the fleet and the executor lane, and stop. Do not spawn anything.
+  Ran 2 shell commands
+● Captain, the bootstrap check ran against the lab home at /tmp/fm-lab.IhJpkr and printed nothing, so the fleet is clean: no missing tools, nothing stuck in sync, no backlog drift and no tangled
+  copies.
+  It said nothing about the executor lane either, so there's no problem to report there, though that only means no fault was found, not that the lane was checked and confirmed working.
+✻ Worked for 17s · done 1:28
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Model: Opus 5.5 │ Thinking: medium │ Ctx Used: 12.0% │ Context: [██░░░░░░░░░░░░░░] 123k/1.0M (12%) │ Reset: 2hr 51m │ (+0,-0) 
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent
+fm-bootstrap exit=0
